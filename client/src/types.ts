@@ -1,0 +1,56 @@
+export interface Player {
+  id: number;
+  name: string;
+  elo: number;
+  wins: number;
+  losses: number;
+  created_at: string;
+  total_games?: number;
+  win_rate?: number;
+}
+
+export interface QueueEntry {
+  id: number;
+  player_id: number;
+  name: string;
+  elo: number;
+  joined_at: string;
+}
+
+export interface Table {
+  id: number;
+  name: string;
+  status: 'available' | 'occupied';
+}
+
+export interface Match {
+  id: number;
+  table_id: number | null;
+  table_name: string | null;
+  player1_id: number;
+  player1_name: string;
+  player1_elo: number;
+  player2_id: number;
+  player2_name: string;
+  player2_elo: number;
+  player1_score: number;
+  player2_score: number;
+  winner_id: number | null;
+  winner_name: string | null;
+  status: 'in_progress' | 'completed';
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface Notification {
+  id: number;
+  message: string;
+  type: 'info' | 'success' | 'match' | 'warning';
+}
+
+export interface Stats {
+  totalPlayers: number;
+  totalMatches: number;
+  activeMatches: number;
+  queueLength: number;
+}
