@@ -22,6 +22,8 @@ export const api = {
   getQueue: () => request('/queue'),
   joinQueue: (player_id: number) => request('/queue', { method: 'POST', body: JSON.stringify({ player_id }) }),
   leaveQueue: (player_id: number) => request(`/queue/${player_id}`, { method: 'DELETE' }),
+  reorderQueue: (playerIds: number[]) =>
+    request('/queue/reorder', { method: 'PATCH', body: JSON.stringify({ playerIds }) }),
 
   // Tables
   getTables: () => request('/tables'),
@@ -30,12 +32,20 @@ export const api = {
 
   // Matches
   getMatches: (status?: string) => request(`/matches${status ? `?status=${status}` : ''}`),
-  startMatch: (player1_id: number, player2_id: number, table_id?: number) =>
-    request('/matches/start', { method: 'POST', body: JSON.stringify({ player1_id, player2_id, table_id }) }),
+  startMatch: (
+    player1_id: number,
+    player2_id: number,
+    opts?: { table_id?: number; player3_id?: number; player4_id?: number }
+  ) =>
+    request('/matches/start', {
+      method: 'POST',
+      body: JSON.stringify({ player1_id, player2_id, ...opts }),
+    }),
   updateScore: (id: number, player1_score: number, player2_score: number) =>
     request(`/matches/${id}/score`, { method: 'PATCH', body: JSON.stringify({ player1_score, player2_score }) }),
   completeMatch: (id: number, winner_id: number) =>
     request(`/matches/${id}/complete`, { method: 'POST', body: JSON.stringify({ winner_id }) }),
+  voidMatch: (id: number) => request(`/matches/${id}`, { method: 'DELETE' }),
 
   // Leaderboard
   getLeaderboard: () => request('/leaderboard'),

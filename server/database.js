@@ -30,6 +30,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+    position INTEGER,
     UNIQUE(player_id)
   )
 `);
@@ -40,6 +41,8 @@ db.exec(`
     table_id INTEGER REFERENCES tables_tt(id),
     player1_id INTEGER NOT NULL REFERENCES players(id),
     player2_id INTEGER NOT NULL REFERENCES players(id),
+    player3_id INTEGER REFERENCES players(id),
+    player4_id INTEGER REFERENCES players(id),
     player1_score INTEGER NOT NULL DEFAULT 0,
     player2_score INTEGER NOT NULL DEFAULT 0,
     winner_id INTEGER REFERENCES players(id),
@@ -48,6 +51,11 @@ db.exec(`
     completed_at TEXT
   )
 `);
+
+// Migrations for existing databases (safe to re-run)
+try { db.exec('ALTER TABLE queue ADD COLUMN position INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN player3_id INTEGER REFERENCES players(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN player4_id INTEGER REFERENCES players(id)'); } catch (_) {}
 
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;

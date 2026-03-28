@@ -15,6 +15,7 @@ export interface QueueEntry {
   name: string;
   elo: number;
   joined_at: string;
+  position: number | null;
 }
 
 export interface Table {
@@ -33,6 +34,12 @@ export interface Match {
   player2_id: number;
   player2_name: string;
   player2_elo: number;
+  player3_id: number | null;
+  player3_name: string | null;
+  player3_elo: number | null;
+  player4_id: number | null;
+  player4_name: string | null;
+  player4_elo: number | null;
   player1_score: number;
   player2_score: number;
   winner_id: number | null;
