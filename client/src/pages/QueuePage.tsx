@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
-import { Table } from '../types';
 
 export default function QueuePage() {
   const { players, queue, tables, activeMatches } = useApp();
@@ -61,31 +60,36 @@ export default function QueuePage() {
   const queueP2Available = queue.filter(q => q.player_id !== Number(startP1));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold">Match Queue</h1>
 
       {error && (
-        <div className="bg-red-900/40 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm">
-          {error}
+        <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up">
+          <span>⚠</span> {error}
         </div>
       )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Queue list */}
         <div className="card space-y-4">
-          <h2 className="font-semibold text-lg">Waiting ({queue.length})</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-lg">Waiting</h2>
+            <span className="badge bg-[#334155] text-gray-300">{queue.length} players</span>
+          </div>
+
           {queue.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-10 text-gray-500">
               <p className="text-4xl mb-3">⏳</p>
               <p>Queue is empty</p>
             </div>
           ) : (
-            <ol className="space-y-2">
+            <ol className="space-y-2 stagger">
               {queue.map((entry, i) => (
-                <li
-                  key={entry.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    i === 0 ? 'border-green-500/40 bg-green-500/10' : 'border-[#334155] bg-[#0f172a]'
+                <li key={entry.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 animate-slide-up ${
+                    i === 0
+                      ? 'border-green-500/40 bg-green-500/8'
+                      : 'border-[#334155] bg-[#0f172a]/60'
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
@@ -100,11 +104,9 @@ export default function QueuePage() {
                   </p>
                   <button
                     onClick={() => leaveQueue(entry.player_id)}
-                    className="text-gray-500 hover:text-red-400 text-sm transition-colors"
+                    className="text-gray-600 hover:text-red-400 transition-colors text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10"
                     title="Remove from queue"
-                  >
-                    ✕
-                  </button>
+                  >×</button>
                 </li>
               ))}
             </ol>
@@ -124,84 +126,84 @@ export default function QueuePage() {
                   <option key={p.id} value={p.id}>{p.name} (ELO {p.elo})</option>
                 ))}
               </select>
-              <button
-                onClick={joinQueue}
-                disabled={!selectedPlayer || loading}
-                className="btn-primary whitespace-nowrap"
-              >
+              <button onClick={joinQueue} disabled={!selectedPlayer || loading} className="btn-primary">
                 Join
               </button>
             </div>
-            {availablePlayers.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">All players are in queue or playing</p>
+            {availablePlayers.length === 0 && players.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1.5">All players are queued or playing</p>
             )}
           </div>
         </div>
 
         {/* Start Match panel */}
-        <div className="card space-y-4">
-          <h2 className="font-semibold text-lg">Start Match</h2>
-          <p className="text-sm text-gray-400">Select two players from the queue to start a match.</p>
+        <div className="space-y-4">
+          <div className="card space-y-4">
+            <h2 className="font-semibold text-lg">Start Match</h2>
+            <p className="text-sm text-gray-400">Pick two players from the queue.</p>
 
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Player 1</label>
-              <select value={startP1} onChange={e => setStartP1(e.target.value)} className="input">
-                <option value="">Choose from queue…</option>
-                {queueP1Available.map(q => (
-                  <option key={q.player_id} value={q.player_id}>
-                    #{queue.findIndex(x => x.player_id === q.player_id) + 1} {q.name} (ELO {q.elo})
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Player 1</label>
+                <select value={startP1} onChange={e => setStartP1(e.target.value)} className="input">
+                  <option value="">Choose from queue…</option>
+                  {queueP1Available.map(q => (
+                    <option key={q.player_id} value={q.player_id}>
+                      #{queue.findIndex(x => x.player_id === q.player_id) + 1} · {q.name} (ELO {q.elo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Player 2</label>
+                <select value={startP2} onChange={e => setStartP2(e.target.value)} className="input">
+                  <option value="">Choose from queue…</option>
+                  {queueP2Available.map(q => (
+                    <option key={q.player_id} value={q.player_id}>
+                      #{queue.findIndex(x => x.player_id === q.player_id) + 1} · {q.name} (ELO {q.elo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Table (optional)</label>
+                <select value={startTable} onChange={e => setStartTable(e.target.value)} className="input">
+                  <option value="">Any available table</option>
+                  {availableTables.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={startMatch}
+                disabled={!startP1 || !startP2 || loading}
+                className="btn-primary w-full py-2.5 text-base"
+              >
+                🏓 Start Match
+              </button>
             </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Player 2</label>
-              <select value={startP2} onChange={e => setStartP2(e.target.value)} className="input">
-                <option value="">Choose from queue…</option>
-                {queueP2Available.map(q => (
-                  <option key={q.player_id} value={q.player_id}>
-                    #{queue.findIndex(x => x.player_id === q.player_id) + 1} {q.name} (ELO {q.elo})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Table (optional)</label>
-              <select value={startTable} onChange={e => setStartTable(e.target.value)} className="input">
-                <option value="">Any available table</option>
-                {availableTables.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              onClick={startMatch}
-              disabled={!startP1 || !startP2 || loading}
-              className="btn-primary w-full"
-            >
-              🏓 Start Match
-            </button>
           </div>
 
-          {/* Tables status */}
-          <div className="border-t border-[#334155] pt-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Tables</h3>
+          {/* Tables grid */}
+          <div className="card">
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Tables</h3>
             <div className="grid grid-cols-2 gap-2">
               {tables.map(t => (
-                <div
-                  key={t.id}
-                  className={`text-center p-2 rounded-lg border text-sm font-medium ${
+                <div key={t.id}
+                  className={`text-center p-3 rounded-lg border transition-all duration-300 ${
                     t.status === 'available'
-                      ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                      : 'border-orange-500/40 bg-orange-500/10 text-orange-400'
+                      ? 'border-green-500/30 bg-green-500/8 text-green-400'
+                      : 'border-orange-500/30 bg-orange-500/8 text-orange-400'
                   }`}
                 >
-                  <p>{t.name}</p>
-                  <p className="text-xs opacity-75">{t.status}</p>
+                  <p className="font-medium text-sm">{t.name}</p>
+                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${t.status === 'available' ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`} />
+                    <p className="text-xs opacity-75 capitalize">{t.status}</p>
+                  </div>
                 </div>
               ))}
             </div>

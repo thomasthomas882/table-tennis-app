@@ -4,36 +4,95 @@
 
 @layer base {
   body {
-    @apply bg-[#0f172a] text-white min-h-screen;
+    @apply bg-[#0a1628] text-white min-h-screen;
   }
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-[#1e293b];
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-[#334155] rounded-full;
-  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-[#1e293b]; }
+  ::-webkit-scrollbar-thumb { @apply bg-[#334155] rounded-full; }
 }
 
 @layer components {
   .card {
-    @apply bg-[#1e293b] rounded-xl border border-[#334155] p-5;
+    @apply bg-[#1e293b] rounded-xl border border-[#334155] p-5 transition-all duration-200;
+  }
+  .card:hover {
+    @apply border-[#475569] -translate-y-0.5 shadow-lg;
   }
   .btn-primary {
-    @apply bg-green-500 hover:bg-green-400 text-black font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-green-500 hover:bg-green-400 text-black font-semibold px-4 py-2 rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
   }
   .btn-secondary {
-    @apply bg-[#334155] hover:bg-[#475569] text-white font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-[#334155] hover:bg-[#475569] text-white font-medium px-4 py-2 rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
   }
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-500 text-white font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-red-600 hover:bg-red-500 text-white font-medium px-4 py-2 rounded-lg transition-all duration-150 active:scale-95;
   }
   .input {
-    @apply bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 w-full;
+    @apply bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/30 w-full transition-all duration-150;
   }
   .badge {
     @apply text-xs font-semibold px-2 py-0.5 rounded-full;
   }
+}
+
+/* ─── Animations ───────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.04); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes count-up {
+  from { transform: translateY(6px) scale(0.9); opacity: 0; }
+  to   { transform: translateY(0)   scale(1);   opacity: 1; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(249, 115, 22, 0.2), 0 0 30px rgba(249, 115, 22, 0.05); }
+  50%       { box-shadow: 0 0 20px rgba(249, 115, 22, 0.4), 0 0 50px rgba(249, 115, 22, 0.1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.animate-fade-in   { animation: fade-in  0.35s ease-out both; }
+.animate-slide-in  { animation: slide-in 0.3s  ease-out both; }
+.animate-slide-up  { animation: slide-up 0.3s  ease-out both; }
+.animate-pop-in    { animation: pop-in   0.4s  ease-out both; }
+.animate-count-up  { animation: count-up 0.25s ease-out both; }
+.animate-glow-pulse { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+/* Staggered children */
+.stagger > *:nth-child(1) { animation-delay: 0ms;   }
+.stagger > *:nth-child(2) { animation-delay: 60ms;  }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* Shimmer loading */
+.shimmer {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
 }

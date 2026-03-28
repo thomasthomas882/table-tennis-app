@@ -3,120 +3,224 @@ import { useApp } from '../App';
 import { api } from '../api';
 import { Match } from '../types';
 
-function ScoreControl({
-  value, onChange, label
-}: { value: number; onChange: (v: number) => void; label: string }) {
+function PingPongAnimation() {
   return (
-    <div className="text-center">
-      <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-8 h-8 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold text-lg transition-colors"
-        >−</button>
-        <span className="text-3xl font-bold w-10 text-center text-green-400">{value}</span>
-        <button
-          onClick={() => onChange(value + 1)}
-          className="w-8 h-8 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold text-lg transition-colors"
-        >+</button>
-      </div>
+    <div className="flex justify-center items-center">
+      <svg width="140" height="44" viewBox="0 0 140 44">
+        {/* Table surface */}
+        <rect x="10" y="18" width="120" height="9" rx="2" fill="#14532d" opacity="0.85"/>
+        {/* Table highlight */}
+        <rect x="10" y="18" width="120" height="2" rx="1" fill="white" opacity="0.07"/>
+        {/* Table edge line */}
+        <rect x="10" y="26" width="120" height="1" rx="0.5" fill="black" opacity="0.2"/>
+
+        {/* Net */}
+        <rect x="66" y="12" width="8" height="20" rx="2" fill="white" opacity="0.3"/>
+        <line x1="70" y1="12" x2="70" y2="32" stroke="white" strokeWidth="1" strokeDasharray="2 2" opacity="0.5"/>
+
+        {/* Left paddle handle */}
+        <rect x="5" y="27" width="4" height="9" rx="2" fill="#78350f"/>
+        {/* Left paddle face */}
+        <ellipse cx="7" cy="20" rx="6" ry="9" fill="#f97316">
+          <animate attributeName="cx"
+            values="7;13;7" keyTimes="0;0.06;0.12"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </ellipse>
+        {/* Left paddle sheen */}
+        <ellipse cx="5" cy="16" rx="2" ry="3" fill="white" opacity="0.15">
+          <animate attributeName="cx"
+            values="5;11;5" keyTimes="0;0.06;0.12"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </ellipse>
+
+        {/* Right paddle handle */}
+        <rect x="131" y="27" width="4" height="9" rx="2" fill="#78350f"/>
+        {/* Right paddle face */}
+        <ellipse cx="133" cy="20" rx="6" ry="9" fill="#f97316">
+          <animate attributeName="cx"
+            values="133;127;133" keyTimes="0.5;0.56;0.62"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </ellipse>
+        {/* Right paddle sheen */}
+        <ellipse cx="131" cy="16" rx="2" ry="3" fill="white" opacity="0.15">
+          <animate attributeName="cx"
+            values="131;125;131" keyTimes="0.5;0.56;0.62"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </ellipse>
+
+        {/* Ball shadow on table */}
+        <ellipse ry="1.5" fill="black" opacity="0.2">
+          <animate attributeName="cx"
+            values="10;70;130;70;10"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+          <animate attributeName="cy" values="27;27;27;27;27" dur="1.8s" repeatCount="indefinite"/>
+          <animate attributeName="rx"
+            values="4;1.5;4;1.5;4"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"/>
+        </ellipse>
+
+        {/* Ball */}
+        <circle r="5.5" fill="white">
+          <animate attributeName="cx"
+            values="10;70;130;70;10"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+          <animate attributeName="cy"
+            values="22;8;22;8;22"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </circle>
+        {/* Ball glint */}
+        <circle r="1.8" fill="white" opacity="0.55">
+          <animate attributeName="cx"
+            values="13;73;133;73;13"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+          <animate attributeName="cy"
+            values="19;5;19;5;19"
+            keyTimes="0;0.25;0.5;0.75;1"
+            dur="1.8s" repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+        </circle>
+      </svg>
     </div>
+  );
+}
+
+function ScoreDisplay({ value, flash }: { value: number; flash: boolean }) {
+  return (
+    <span className={`text-5xl font-bold tabular-nums transition-all duration-150 ${flash ? 'text-green-300 scale-125' : 'text-green-400 scale-100'} inline-block`}>
+      {value}
+    </span>
   );
 }
 
 function ActiveMatchCard({ match }: { match: Match }) {
   const [p1Score, setP1Score] = useState(match.player1_score);
   const [p2Score, setP2Score] = useState(match.player2_score);
+  const [p1Flash, setP1Flash] = useState(false);
+  const [p2Flash, setP2Flash] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
 
-  // Sync with live updates
   useEffect(() => {
     setP1Score(match.player1_score);
+    setP1Flash(true);
+    const t = setTimeout(() => setP1Flash(false), 300);
+    return () => clearTimeout(t);
+  }, [match.player1_score]);
+
+  useEffect(() => {
     setP2Score(match.player2_score);
-  }, [match.player1_score, match.player2_score]);
+    setP2Flash(true);
+    const t = setTimeout(() => setP2Flash(false), 300);
+    return () => clearTimeout(t);
+  }, [match.player2_score]);
 
   async function saveScore() {
     setSaving(true);
-    try {
-      await api.updateScore(match.id, p1Score, p2Score);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSaving(false);
-    }
+    try { await api.updateScore(match.id, p1Score, p2Score); }
+    catch (e) { console.error(e); }
+    finally { setSaving(false); }
   }
 
   async function completeMatch(winnerId: number) {
     setCompleting(true);
-    try {
-      await api.completeMatch(match.id, winnerId);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setCompleting(false);
-    }
+    try { await api.completeMatch(match.id, winnerId); }
+    catch (e) { console.error(e); }
+    finally { setCompleting(false); }
   }
 
   const p1Leading = p1Score > p2Score;
   const p2Leading = p2Score > p1Score;
 
   return (
-    <div className="card border-orange-500/30">
+    <div className="relative rounded-xl border border-orange-500/40 bg-gradient-to-b from-[#1e293b] to-[#162032] p-5 shadow-[0_0_24px_rgba(249,115,22,0.12)] overflow-hidden">
+      {/* Subtle top glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <span className="badge bg-orange-500/20 text-orange-400 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse inline-block" />
-          Live
+        <span className="flex items-center gap-1.5 text-xs font-semibold bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
+          LIVE
         </span>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          {match.table_name && <span>📍 {match.table_name}</span>}
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          {match.table_name && <span className="text-gray-400">📍 {match.table_name}</span>}
           <span>{new Date(match.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
       </div>
 
-      <div className="flex items-center justify-around gap-4 mb-4">
-        <div className={`flex-1 text-center ${p1Leading ? 'opacity-100' : 'opacity-70'}`}>
-          <p className={`font-semibold text-base truncate ${p1Leading ? 'text-white' : 'text-gray-400'}`}>
-            {match.player1_name}
-          </p>
-          <p className="text-xs text-gray-500 mb-2">ELO {match.player1_elo}</p>
-          <ScoreControl value={p1Score} onChange={setP1Score} label={match.player1_name} />
+      {/* Players + animation */}
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
+        {/* Player 1 */}
+        <div className={`text-center transition-opacity duration-300 ${p1Leading ? 'opacity-100' : 'opacity-60'}`}>
+          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p1Leading ? 'bg-green-500/20 text-green-400' : 'bg-[#334155] text-gray-400'}`}>
+            {match.player1_name[0].toUpperCase()}
+          </div>
+          <p className={`text-sm font-semibold truncate ${p1Leading ? 'text-white' : 'text-gray-400'}`}>{match.player1_name}</p>
+          <p className="text-xs text-gray-600 mb-2">ELO {match.player1_elo}</p>
+          <ScoreDisplay value={p1Score} flash={p1Flash} />
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <button onClick={() => setP1Score(s => Math.max(0, s - 1))}
+              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">−</button>
+            <button onClick={() => setP1Score(s => s + 1)}
+              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">+</button>
+          </div>
         </div>
 
-        <div className="text-center">
-          <p className="text-gray-600 font-bold text-lg">VS</p>
+        {/* Ping pong animation */}
+        <div className="flex flex-col items-center gap-1">
+          <PingPongAnimation />
+          <span className="text-xs text-gray-600 font-medium tracking-widest">VS</span>
         </div>
 
-        <div className={`flex-1 text-center ${p2Leading ? 'opacity-100' : 'opacity-70'}`}>
-          <p className={`font-semibold text-base truncate ${p2Leading ? 'text-white' : 'text-gray-400'}`}>
-            {match.player2_name}
-          </p>
-          <p className="text-xs text-gray-500 mb-2">ELO {match.player2_elo}</p>
-          <ScoreControl value={p2Score} onChange={setP2Score} label={match.player2_name} />
+        {/* Player 2 */}
+        <div className={`text-center transition-opacity duration-300 ${p2Leading ? 'opacity-100' : 'opacity-60'}`}>
+          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p2Leading ? 'bg-green-500/20 text-green-400' : 'bg-[#334155] text-gray-400'}`}>
+            {match.player2_name[0].toUpperCase()}
+          </div>
+          <p className={`text-sm font-semibold truncate ${p2Leading ? 'text-white' : 'text-gray-400'}`}>{match.player2_name}</p>
+          <p className="text-xs text-gray-600 mb-2">ELO {match.player2_elo}</p>
+          <ScoreDisplay value={p2Score} flash={p2Flash} />
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <button onClick={() => setP2Score(s => Math.max(0, s - 1))}
+              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">−</button>
+            <button onClick={() => setP2Score(s => s + 1)}
+              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">+</button>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={saveScore}
+      {/* Actions */}
+      <div className="flex gap-2 pt-3 border-t border-[#334155]/60">
+        <button onClick={saveScore}
           disabled={saving || (p1Score === match.player1_score && p2Score === match.player2_score)}
-          className="btn-secondary text-sm flex-1"
-        >
+          className="flex-1 btn-secondary text-sm py-1.5">
           {saving ? 'Saving…' : 'Update Score'}
         </button>
-        <button
-          onClick={() => completeMatch(match.player1_id)}
-          disabled={completing}
-          className="flex-1 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-700/50 text-blue-300 font-medium px-3 py-2 rounded-lg text-sm transition-colors"
-        >
-          {match.player1_name.split(' ')[0]} wins
+        <button onClick={() => completeMatch(match.player1_id)} disabled={completing}
+          className="flex-1 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-600/40 text-blue-300 font-medium px-3 py-1.5 rounded-lg text-sm transition-all">
+          {match.player1_name.split(' ')[0]} wins 🏆
         </button>
-        <button
-          onClick={() => completeMatch(match.player2_id)}
-          disabled={completing}
-          className="flex-1 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-700/50 text-purple-300 font-medium px-3 py-2 rounded-lg text-sm transition-colors"
-        >
-          {match.player2_name.split(' ')[0]} wins
+        <button onClick={() => completeMatch(match.player2_id)} disabled={completing}
+          className="flex-1 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-600/40 text-purple-300 font-medium px-3 py-1.5 rounded-lg text-sm transition-all">
+          {match.player2_name.split(' ')[0]} wins 🏆
         </button>
       </div>
     </div>
@@ -124,34 +228,31 @@ function ActiveMatchCard({ match }: { match: Match }) {
 }
 
 function CompletedMatchCard({ match }: { match: Match }) {
+  const p1Won = match.winner_id === match.player1_id;
+  const p2Won = match.winner_id === match.player2_id;
   return (
-    <div className="card opacity-80 hover:opacity-100 transition-opacity">
-      <div className="flex items-center justify-between mb-2">
-        <span className="badge bg-gray-700 text-gray-300">Completed</span>
+    <div className="card hover:border-[#475569] transition-all duration-200 hover:-translate-y-0.5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="badge bg-[#334155] text-gray-400">Completed</span>
         <span className="text-xs text-gray-500">
           {match.completed_at
             ? new Date(match.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             : ''}
         </span>
       </div>
-      <div className="flex items-center gap-4">
-        <div className={`flex-1 text-center ${match.winner_id === match.player1_id ? 'text-white' : 'text-gray-500'}`}>
-          <p className="font-medium text-sm">{match.player1_name}</p>
-          <p className={`text-2xl font-bold ${match.winner_id === match.player1_id ? 'text-green-400' : ''}`}>
-            {match.player1_score}
-          </p>
+      <div className="flex items-center gap-3">
+        <div className={`flex-1 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : ''}`}>
+          <p className={`text-sm font-medium ${p1Won ? 'text-white' : 'text-gray-500'}`}>{match.player1_name}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : 'text-gray-600'}`}>{match.player1_score}</p>
+          {p1Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
         </div>
-        <div className="text-gray-600 text-sm font-bold">vs</div>
-        <div className={`flex-1 text-center ${match.winner_id === match.player2_id ? 'text-white' : 'text-gray-500'}`}>
-          <p className="font-medium text-sm">{match.player2_name}</p>
-          <p className={`text-2xl font-bold ${match.winner_id === match.player2_id ? 'text-green-400' : ''}`}>
-            {match.player2_score}
-          </p>
+        <div className="text-gray-700 font-bold text-sm">vs</div>
+        <div className={`flex-1 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : ''}`}>
+          <p className={`text-sm font-medium ${p2Won ? 'text-white' : 'text-gray-500'}`}>{match.player2_name}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : 'text-gray-600'}`}>{match.player2_score}</p>
+          {p2Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
         </div>
       </div>
-      {match.winner_name && (
-        <p className="text-center text-xs text-green-400 mt-2">🏆 {match.winner_name} won</p>
-      )}
     </div>
   );
 }
@@ -166,35 +267,33 @@ export default function MatchesPage() {
       .then((m) => setCompleted(m as Match[]))
       .catch(() => {})
       .finally(() => setLoadingHistory(false));
-  }, [activeMatches]); // refresh when active matches change
+  }, [activeMatches]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <h1 className="text-2xl font-bold">Matches</h1>
 
-      {/* Active */}
       <section>
-        <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+        <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
           Active Matches
           {activeMatches.length > 0 && (
             <span className="badge bg-orange-500/20 text-orange-400">{activeMatches.length}</span>
           )}
         </h2>
         {activeMatches.length === 0 ? (
-          <div className="card text-center py-10 text-gray-500">
-            <p className="text-4xl mb-2">🏓</p>
+          <div className="card text-center py-12 text-gray-500">
+            <div className="text-5xl mb-3">🏓</div>
             <p>No active matches right now</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-5">
             {activeMatches.map(m => <ActiveMatchCard key={m.id} match={m} />)}
           </div>
         )}
       </section>
 
-      {/* History */}
       <section>
-        <h2 className="font-semibold text-lg mb-3">Recent Matches</h2>
+        <h2 className="font-semibold text-lg mb-4">Recent Matches</h2>
         {loadingHistory ? (
           <div className="text-gray-500 text-sm">Loading…</div>
         ) : completed.length === 0 ? (
