@@ -172,23 +172,25 @@ app.post('/api/matches/start', (req, res) => {
   const p2 = db.prepare('SELECT * FROM players WHERE id = ?').get(player2_id);
   if (!p1 || !p2) return res.status(404).json({ error: 'Player not found' });
 
-  const startMatch = db.transaction(() => {
+  let matchId;
+  db.exec('BEGIN');
+  try {
     const result = db.prepare(
       'INSERT INTO matches (player1_id, player2_id, table_id) VALUES (?, ?, ?)'
     ).run(player1_id, player2_id, table_id || null);
 
-    // Remove both from queue
     db.prepare('DELETE FROM queue WHERE player_id IN (?, ?)').run(player1_id, player2_id);
 
-    // Mark table occupied
     if (table_id) {
       db.prepare("UPDATE tables_tt SET status = 'occupied' WHERE id = ?").run(table_id);
     }
 
-    return result.lastInsertRowid;
-  });
-
-  const matchId = startMatch();
+    matchId = result.lastInsertRowid;
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
   const match = getMatches()[0]; // latest
   broadcast('match:started', match);
   broadcast('queue:updated', getQueue());
@@ -225,7 +227,8 @@ app.post('/api/matches/:id/complete', (req, res) => {
   const loser = db.prepare('SELECT * FROM players WHERE id = ?').get(loserId);
   const { newWinnerElo, newLoserElo, winnerDelta, loserDelta } = calculateNewRatings(winner.elo, loser.elo);
 
-  const complete = db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     db.prepare(`
       UPDATE matches SET status = 'completed', winner_id = ?, completed_at = datetime('now')
       WHERE id = ?
@@ -237,9 +240,11 @@ app.post('/api/matches/:id/complete', (req, res) => {
     if (match.table_id) {
       db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
     }
-  });
-
-  complete();
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
 
   const completedMatch = getMatches().find(m => m.id === match.id);
   broadcast('match:completed', completedMatch);
