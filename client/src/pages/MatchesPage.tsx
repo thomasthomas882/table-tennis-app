@@ -150,7 +150,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
   const p2Leading = p2Score > p1Score;
 
   return (
-    <div className="relative rounded-xl border border-orange-500/40 bg-gradient-to-b from-[#1e293b] to-[#162032] p-5 shadow-[0_0_24px_rgba(249,115,22,0.12)] overflow-hidden">
+    <div className="relative rounded-xl border border-orange-500/40 bg-card p-5 shadow-[0_0_24px_rgba(249,115,22,0.12)] overflow-hidden">
       {/* Subtle top glow line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
 
@@ -160,8 +160,8 @@ function ActiveMatchCard({ match }: { match: Match }) {
           <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
           LIVE
         </span>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          {match.table_name && <span className="text-gray-400">📍 {match.table_name}</span>}
+        <div className="flex items-center gap-3 text-xs text-muted">
+          {match.table_name && <span className="text-secondary">📍 {match.table_name}</span>}
           <span>{new Date(match.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
       </div>
@@ -170,45 +170,45 @@ function ActiveMatchCard({ match }: { match: Match }) {
       <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
         {/* Player 1 */}
         <div className={`text-center transition-opacity duration-300 ${p1Leading ? 'opacity-100' : 'opacity-60'}`}>
-          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p1Leading ? 'bg-green-500/20 text-green-400' : 'bg-[#334155] text-gray-400'}`}>
+          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p1Leading ? 'bg-green-500/20 text-green-400' : 'bg-card border border-theme text-secondary'}`}>
             {match.player1_name[0].toUpperCase()}
           </div>
-          <p className={`text-sm font-semibold truncate ${p1Leading ? 'text-white' : 'text-gray-400'}`}>{match.player1_name}</p>
-          <p className="text-xs text-gray-600 mb-2">ELO {match.player1_elo}</p>
+          <p className={`text-sm font-semibold truncate ${p1Leading ? 'text-primary' : 'text-secondary'}`}>{match.player1_name}</p>
+          <p className="text-xs text-faint mb-2">ELO {match.player1_elo}</p>
           <ScoreDisplay value={p1Score} flash={p1Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
             <button onClick={() => setP1Score(s => Math.max(0, s - 1))}
-              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">−</button>
+              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
             <button onClick={() => setP1Score(s => s + 1)}
-              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">+</button>
+              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
 
         {/* Ping pong animation */}
         <div className="flex flex-col items-center gap-1">
           <PingPongAnimation />
-          <span className="text-xs text-gray-600 font-medium tracking-widest">VS</span>
+          <span className="text-xs text-faint font-medium tracking-widest">VS</span>
         </div>
 
         {/* Player 2 */}
         <div className={`text-center transition-opacity duration-300 ${p2Leading ? 'opacity-100' : 'opacity-60'}`}>
-          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p2Leading ? 'bg-green-500/20 text-green-400' : 'bg-[#334155] text-gray-400'}`}>
+          <div className={`inline-flex w-10 h-10 rounded-full items-center justify-center text-lg font-bold mb-1 ${p2Leading ? 'bg-green-500/20 text-green-400' : 'bg-card border border-theme text-secondary'}`}>
             {match.player2_name[0].toUpperCase()}
           </div>
-          <p className={`text-sm font-semibold truncate ${p2Leading ? 'text-white' : 'text-gray-400'}`}>{match.player2_name}</p>
-          <p className="text-xs text-gray-600 mb-2">ELO {match.player2_elo}</p>
+          <p className={`text-sm font-semibold truncate ${p2Leading ? 'text-primary' : 'text-secondary'}`}>{match.player2_name}</p>
+          <p className="text-xs text-faint mb-2">ELO {match.player2_elo}</p>
           <ScoreDisplay value={p2Score} flash={p2Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
             <button onClick={() => setP2Score(s => Math.max(0, s - 1))}
-              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">−</button>
+              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
             <button onClick={() => setP2Score(s => s + 1)}
-              className="w-7 h-7 rounded-lg bg-[#334155] hover:bg-[#475569] font-bold transition-colors text-sm">+</button>
+              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 pt-3 border-t border-[#334155]/60">
+      <div className="flex gap-2 pt-3 border-t border-theme/60">
         <button onClick={saveScore}
           disabled={saving || (p1Score === match.player1_score && p2Score === match.player2_score)}
           className="flex-1 btn-secondary text-sm py-1.5">
@@ -231,10 +231,10 @@ function CompletedMatchCard({ match }: { match: Match }) {
   const p1Won = match.winner_id === match.player1_id;
   const p2Won = match.winner_id === match.player2_id;
   return (
-    <div className="card hover:border-[#475569] transition-all duration-200 hover:-translate-y-0.5">
+    <div className="card hover:border-hover transition-all duration-200 hover:-translate-y-0.5">
       <div className="flex items-center justify-between mb-3">
-        <span className="badge bg-[#334155] text-gray-400">Completed</span>
-        <span className="text-xs text-gray-500">
+        <span className="badge bg-card border border-theme text-secondary">Completed</span>
+        <span className="text-xs text-muted">
           {match.completed_at
             ? new Date(match.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             : ''}
@@ -242,14 +242,14 @@ function CompletedMatchCard({ match }: { match: Match }) {
       </div>
       <div className="flex items-center gap-3">
         <div className={`flex-1 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : ''}`}>
-          <p className={`text-sm font-medium ${p1Won ? 'text-white' : 'text-gray-500'}`}>{match.player1_name}</p>
-          <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : 'text-gray-600'}`}>{match.player1_score}</p>
+          <p className={`text-sm font-medium ${p1Won ? 'text-primary' : 'text-muted'}`}>{match.player1_name}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : 'text-faint'}`}>{match.player1_score}</p>
           {p1Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
         </div>
-        <div className="text-gray-700 font-bold text-sm">vs</div>
+        <div className="text-faint font-bold text-sm">vs</div>
         <div className={`flex-1 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : ''}`}>
-          <p className={`text-sm font-medium ${p2Won ? 'text-white' : 'text-gray-500'}`}>{match.player2_name}</p>
-          <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : 'text-gray-600'}`}>{match.player2_score}</p>
+          <p className={`text-sm font-medium ${p2Won ? 'text-primary' : 'text-muted'}`}>{match.player2_name}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : 'text-faint'}`}>{match.player2_score}</p>
           {p2Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
         </div>
       </div>
@@ -281,7 +281,7 @@ export default function MatchesPage() {
           )}
         </h2>
         {activeMatches.length === 0 ? (
-          <div className="card text-center py-12 text-gray-500">
+          <div className="card text-center py-12 text-muted">
             <div className="text-5xl mb-3">🏓</div>
             <p>No active matches right now</p>
           </div>
@@ -295,9 +295,9 @@ export default function MatchesPage() {
       <section>
         <h2 className="font-semibold text-lg mb-4">Recent Matches</h2>
         {loadingHistory ? (
-          <div className="text-gray-500 text-sm">Loading…</div>
+          <div className="text-muted text-sm">Loading…</div>
         ) : completed.length === 0 ? (
-          <div className="card text-center py-8 text-gray-500">No completed matches yet</div>
+          <div className="card text-center py-8 text-muted">No completed matches yet</div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {completed.map(m => <CompletedMatchCard key={m.id} match={m} />)}

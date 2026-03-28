@@ -7,13 +7,14 @@ const links = [
   { to: '/matches', label: 'Matches', icon: '🏓' },
   { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/players', label: 'Players', icon: '👤' },
+  { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export default function Navbar({ connected }: { connected: boolean }) {
   const { queue, activeMatches } = useApp();
 
   return (
-    <nav className="bg-[#111827]/95 backdrop-blur-sm border-b border-[#1e293b] sticky top-0 z-40">
+    <nav className="bg-nav backdrop-blur-sm border-b border-theme sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
         {/* Logo */}
         <div className="flex items-center gap-2 font-bold text-lg flex-shrink-0">
@@ -34,7 +35,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
                 `relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-green-500/15 text-green-400'
-                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'
+                    : 'text-muted hover:text-primary hover:bg-white/5'
                 }`
               }
             >
@@ -57,7 +58,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
         {/* Connection status */}
         <div className="flex items-center gap-1.5 text-xs flex-shrink-0">
           <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${connected ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-600'}`} />
-          <span className={`hidden sm:inline transition-colors duration-500 ${connected ? 'text-green-400' : 'text-gray-600'}`}>
+          <span className={`hidden sm:inline transition-colors duration-500 ${connected ? 'text-green-400' : 'text-muted'}`}>
             {connected ? 'Live' : 'Offline'}
           </span>
         </div>

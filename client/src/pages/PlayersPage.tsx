@@ -69,8 +69,8 @@ export default function PlayersPage() {
       {players.length === 0 ? (
         <div className="card text-center py-14 animate-pop-in">
           <p className="text-5xl mb-3">👤</p>
-          <p className="text-gray-400">No players yet.</p>
-          <p className="text-gray-500 text-sm mt-1">Add the first player above to get started!</p>
+          <p className="text-secondary">No players yet.</p>
+          <p className="text-muted text-sm mt-1">Add the first player above to get started!</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger">
@@ -86,7 +86,7 @@ export default function PlayersPage() {
                 style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
                 <button
                   onClick={() => removePlayer(p.id, p.name)}
-                  className="absolute top-3 right-3 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-150 text-xl leading-none"
+                  className="absolute top-3 right-3 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-150 text-xl leading-none"
                   title="Remove player"
                 >
                   ×
@@ -111,23 +111,23 @@ export default function PlayersPage() {
                 <h3 className="font-semibold truncate pr-4">{p.name}</h3>
                 <p className="text-3xl font-bold text-green-400 mt-0.5 tabular-nums">
                   {p.elo}
-                  <span className="text-sm text-gray-500 font-normal ml-1">ELO</span>
+                  <span className="text-sm text-muted font-normal ml-1">ELO</span>
                 </p>
 
-                <div className="mt-3 pt-3 border-t border-[#334155] grid grid-cols-3 gap-1 text-center text-xs">
+                <div className="mt-3 pt-3 border-t border-theme grid grid-cols-3 gap-1 text-center text-xs">
                   <div>
                     <p className="text-green-400 font-bold text-base tabular-nums">{p.wins}</p>
-                    <p className="text-gray-500">Wins</p>
+                    <p className="text-muted">Wins</p>
                   </div>
                   <div>
                     <p className="text-red-400 font-bold text-base tabular-nums">{p.losses}</p>
-                    <p className="text-gray-500">Losses</p>
+                    <p className="text-muted">Losses</p>
                   </div>
                   <div>
-                    <p className={`font-bold text-base tabular-nums ${winRate !== null && winRate >= 50 ? 'text-green-400' : 'text-gray-400'}`}>
+                    <p className={`font-bold text-base tabular-nums ${winRate !== null && winRate >= 50 ? 'text-green-400' : 'text-secondary'}`}>
                       {winRate !== null ? `${winRate}%` : '–'}
                     </p>
-                    <p className="text-gray-500">Win%</p>
+                    <p className="text-muted">Win%</p>
                   </div>
                 </div>
               </div>

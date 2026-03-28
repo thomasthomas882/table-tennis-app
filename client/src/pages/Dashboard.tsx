@@ -13,7 +13,7 @@ function StatCard({ label, value, icon, gradient, delay }: {
         </div>
         <div>
           <p className="text-3xl font-bold tabular-nums animate-count-up">{value}</p>
-          <p className="text-gray-400 text-sm">{label}</p>
+          <p className="text-secondary text-sm">{label}</p>
         </div>
       </div>
     </div>
@@ -24,22 +24,22 @@ function LiveMatchPreview({ match }: { match: Match }) {
   const p1Leading = match.player1_score > match.player2_score;
   const p2Leading = match.player2_score > match.player1_score;
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0f172a] border border-orange-500/20 hover:border-orange-500/40 transition-all duration-200">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-input border border-orange-500/20 hover:border-orange-500/40 transition-all duration-200">
       <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse flex-shrink-0" />
       <div className="flex-1 flex items-center gap-2 min-w-0">
-        <span className={`text-sm font-medium truncate flex-1 ${p1Leading ? 'text-white' : 'text-gray-400'}`}>
+        <span className={`text-sm font-medium truncate flex-1 ${p1Leading ? 'text-primary' : 'text-secondary'}`}>
           {match.player1_name}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className={`text-lg font-bold tabular-nums ${p1Leading ? 'text-green-400' : 'text-gray-500'}`}>{match.player1_score}</span>
-          <span className="text-gray-600 text-xs">:</span>
-          <span className={`text-lg font-bold tabular-nums ${p2Leading ? 'text-green-400' : 'text-gray-500'}`}>{match.player2_score}</span>
+          <span className={`text-lg font-bold tabular-nums ${p1Leading ? 'text-green-400' : 'text-muted'}`}>{match.player1_score}</span>
+          <span className="text-faint text-xs">:</span>
+          <span className={`text-lg font-bold tabular-nums ${p2Leading ? 'text-green-400' : 'text-muted'}`}>{match.player2_score}</span>
         </div>
-        <span className={`text-sm font-medium truncate flex-1 text-right ${p2Leading ? 'text-white' : 'text-gray-400'}`}>
+        <span className={`text-sm font-medium truncate flex-1 text-right ${p2Leading ? 'text-primary' : 'text-secondary'}`}>
           {match.player2_name}
         </span>
       </div>
-      {match.table_name && <span className="text-xs text-gray-600 flex-shrink-0">{match.table_name}</span>}
+      {match.table_name && <span className="text-xs text-faint flex-shrink-0">{match.table_name}</span>}
     </div>
   );
 }
@@ -56,7 +56,7 @@ export default function Dashboard() {
     <div className="space-y-7 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Your club's live match tracker</p>
+        <p className="text-secondary text-sm mt-1">Your club's live match tracker</p>
       </div>
 
       {/* Stats */}
@@ -84,7 +84,7 @@ export default function Dashboard() {
             <Link to="/matches" className="text-green-400 text-sm hover:text-green-300 transition-colors">View all →</Link>
           </div>
           {activeMatches.length === 0 ? (
-            <div className="card text-center py-8 text-gray-500">
+            <div className="card text-center py-8 text-muted">
               <p className="text-3xl mb-2">🏓</p>
               <p className="text-sm">No active matches</p>
               <Link to="/queue" className="text-green-400 text-sm hover:underline mt-1 block">Start one from the queue →</Link>
@@ -93,7 +93,7 @@ export default function Dashboard() {
             <div className="space-y-2 stagger">
               {activeMatches.slice(0, 4).map(m => <LiveMatchPreview key={m.id} match={m} />)}
               {activeMatches.length > 4 && (
-                <p className="text-xs text-gray-500 text-center">+{activeMatches.length - 4} more matches</p>
+                <p className="text-xs text-muted text-center">+{activeMatches.length - 4} more matches</p>
               )}
             </div>
           )}
@@ -109,20 +109,20 @@ export default function Dashboard() {
             </div>
             <div className="card">
               {queue.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-3">Queue is empty</p>
+                <p className="text-muted text-sm text-center py-3">Queue is empty</p>
               ) : (
                 <ol className="space-y-2 stagger">
                   {queue.slice(0, 5).map((entry, i) => (
                     <li key={entry.id} className="flex items-center gap-3 text-sm animate-slide-up">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        i === 0 ? 'bg-green-500 text-black' : 'bg-[#334155] text-gray-300'
+                        i === 0 ? 'bg-green-500 text-black' : 'bg-card border border-theme text-secondary'
                       }`}>{i + 1}</span>
                       <span className="flex-1">{entry.name}</span>
-                      <span className="text-gray-500 text-xs">ELO {entry.elo}</span>
+                      <span className="text-muted text-xs">ELO {entry.elo}</span>
                     </li>
                   ))}
                   {queue.length > 5 && (
-                    <p className="text-xs text-gray-500 text-center pt-1">+{queue.length - 5} more</p>
+                    <p className="text-xs text-muted text-center pt-1">+{queue.length - 5} more</p>
                   )}
                 </ol>
               )}
@@ -137,7 +137,7 @@ export default function Dashboard() {
             </div>
             <div className="card">
               {topPlayers.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-3">No ranked players yet</p>
+                <p className="text-muted text-sm text-center py-3">No ranked players yet</p>
               ) : (
                 <ol className="space-y-2 stagger">
                   {topPlayers.map((p, i) => (

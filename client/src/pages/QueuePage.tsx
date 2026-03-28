@@ -74,11 +74,11 @@ export default function QueuePage() {
         <div className="card space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Waiting</h2>
-            <span className="badge bg-[#334155] text-gray-300">{queue.length} players</span>
+            <span className="badge bg-card border border-theme text-secondary">{queue.length} players</span>
           </div>
 
           {queue.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">
+            <div className="text-center py-10 text-muted">
               <p className="text-4xl mb-3">⏳</p>
               <p>Queue is empty</p>
             </div>
@@ -89,22 +89,22 @@ export default function QueuePage() {
                   className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 animate-slide-up ${
                     i === 0
                       ? 'border-green-500/40 bg-green-500/8'
-                      : 'border-[#334155] bg-[#0f172a]/60'
+                      : 'border-theme bg-input/60'
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                    i === 0 ? 'bg-green-500 text-black' : 'bg-[#334155] text-gray-300'
+                    i === 0 ? 'bg-green-500 text-black' : 'bg-card border border-theme text-secondary'
                   }`}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{entry.name}</p>
-                    <p className="text-xs text-gray-500">ELO {entry.elo}</p>
+                    <p className="text-xs text-muted">ELO {entry.elo}</p>
                   </div>
-                  <p className="text-xs text-gray-500 flex-shrink-0">
+                  <p className="text-xs text-muted flex-shrink-0">
                     {new Date(entry.joined_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <button
                     onClick={() => leaveQueue(entry.player_id)}
-                    className="text-gray-600 hover:text-red-400 transition-colors text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10"
+                    className="text-faint hover:text-red-400 transition-colors text-lg leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10"
                     title="Remove from queue"
                   >×</button>
                 </li>
@@ -113,8 +113,8 @@ export default function QueuePage() {
           )}
 
           {/* Add to queue */}
-          <div className="border-t border-[#334155] pt-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Add player to queue</h3>
+          <div className="border-t border-theme pt-4">
+            <h3 className="text-sm font-medium text-secondary mb-2">Add player to queue</h3>
             <div className="flex gap-2">
               <select
                 value={selectedPlayer}
@@ -131,7 +131,7 @@ export default function QueuePage() {
               </button>
             </div>
             {availablePlayers.length === 0 && players.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1.5">All players are queued or playing</p>
+              <p className="text-xs text-muted mt-1.5">All players are queued or playing</p>
             )}
           </div>
         </div>
@@ -140,11 +140,11 @@ export default function QueuePage() {
         <div className="space-y-4">
           <div className="card space-y-4">
             <h2 className="font-semibold text-lg">Start Match</h2>
-            <p className="text-sm text-gray-400">Pick two players from the queue.</p>
+            <p className="text-sm text-secondary">Pick two players from the queue.</p>
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Player 1</label>
+                <label className="text-xs font-medium text-secondary mb-1.5 block uppercase tracking-wider">Player 1</label>
                 <select value={startP1} onChange={e => setStartP1(e.target.value)} className="input">
                   <option value="">Choose from queue…</option>
                   {queueP1Available.map(q => (
@@ -156,7 +156,7 @@ export default function QueuePage() {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Player 2</label>
+                <label className="text-xs font-medium text-secondary mb-1.5 block uppercase tracking-wider">Player 2</label>
                 <select value={startP2} onChange={e => setStartP2(e.target.value)} className="input">
                   <option value="">Choose from queue…</option>
                   {queueP2Available.map(q => (
@@ -168,7 +168,7 @@ export default function QueuePage() {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-1.5 block uppercase tracking-wider">Table (optional)</label>
+                <label className="text-xs font-medium text-secondary mb-1.5 block uppercase tracking-wider">Table (optional)</label>
                 <select value={startTable} onChange={e => setStartTable(e.target.value)} className="input">
                   <option value="">Any available table</option>
                   {availableTables.map(t => (
@@ -189,7 +189,7 @@ export default function QueuePage() {
 
           {/* Tables grid */}
           <div className="card">
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Tables</h3>
+            <h3 className="text-sm font-medium text-secondary mb-3">Tables</h3>
             <div className="grid grid-cols-2 gap-2">
               {tables.map(t => (
                 <div key={t.id}

@@ -14,7 +14,7 @@ function EloBar({ elo, max, delay }: { elo: number; max: number; delay: number }
   }, [pct, delay]);
 
   return (
-    <div className="w-full bg-[#334155] rounded-full h-1.5 mt-1">
+    <div className="w-full bg-card border border-theme rounded-full h-1.5 mt-1">
       <div
         className="h-1.5 rounded-full bg-gradient-to-r from-green-700 to-green-400"
         style={{ width: `${width}%`, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
@@ -40,7 +40,7 @@ export default function LeaderboardPage() {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Leaderboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Ranked by ELO rating (K=32). Starting at 1000.</p>
+        <p className="text-secondary text-sm mt-1">Ranked by ELO rating (K=32). Starting at 1000.</p>
       </div>
 
       {loading ? (
@@ -52,8 +52,8 @@ export default function LeaderboardPage() {
       ) : players.length === 0 ? (
         <div className="card text-center py-14 animate-pop-in">
           <p className="text-5xl mb-3">🏆</p>
-          <p className="text-gray-400">No ranked players yet.</p>
-          <p className="text-gray-500 text-sm mt-1">Complete some matches to build the rankings!</p>
+          <p className="text-secondary">No ranked players yet.</p>
+          <p className="text-muted text-sm mt-1">Complete some matches to build the rankings!</p>
         </div>
       ) : (
         <>
@@ -75,7 +75,7 @@ export default function LeaderboardPage() {
                     <span className="text-2xl">{medals[rank - 1]}</span>
                     <p className="font-bold text-sm mt-1 text-center truncate w-full px-2">{p.name}</p>
                     <p className="text-green-400 font-bold">{p.elo}</p>
-                    <p className="text-xs text-gray-500">{p.wins}W – {p.losses}L</p>
+                    <p className="text-xs text-muted">{p.wins}W – {p.losses}L</p>
                     {rank === 1 && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-3xl animate-bounce">👑</div>
                     )}
@@ -86,10 +86,10 @@ export default function LeaderboardPage() {
           )}
 
           {/* Full table */}
-          <div className="rounded-xl border border-[#334155] overflow-hidden">
+          <div className="rounded-xl border border-theme overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#162032] border-b border-[#334155] text-gray-400 text-xs">
+                <tr className="bg-input border-b border-theme text-secondary text-xs">
                   <th className="text-left px-4 py-3 w-10">#</th>
                   <th className="text-left px-4 py-3">Player</th>
                   <th className="text-right px-4 py-3">ELO</th>
@@ -102,9 +102,9 @@ export default function LeaderboardPage() {
               <tbody>
                 {players.map((p, i) => (
                   <tr key={p.id}
-                    className={`border-b border-[#334155]/40 hover:bg-[#334155]/20 transition-colors ${i < 3 ? 'bg-green-500/5' : 'bg-[#1e293b]'}`}>
+                    className={`border-b border-theme/40 hover:bg-card-hover transition-colors ${i < 3 ? 'bg-green-500/5' : 'bg-card'}`}>
                     <td className="px-4 py-3">
-                      {medals[i] ?? <span className="text-gray-500 text-xs font-medium">{i + 1}</span>}
+                      {medals[i] ?? <span className="text-muted text-xs font-medium">{i + 1}</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -121,11 +121,11 @@ export default function LeaderboardPage() {
                     <td className="px-4 py-3 text-right text-green-300 tabular-nums">{p.wins}</td>
                     <td className="px-4 py-3 text-right text-red-400 tabular-nums">{p.losses}</td>
                     <td className="px-4 py-3 text-right tabular-nums">
-                      <span className={`font-medium ${(p.win_rate ?? 0) >= 50 ? 'text-green-400' : 'text-gray-400'}`}>
+                      <span className={`font-medium ${(p.win_rate ?? 0) >= 50 ? 'text-green-400' : 'text-secondary'}`}>
                         {p.win_rate}%
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-500 tabular-nums hidden sm:table-cell">{p.total_games}</td>
+                    <td className="px-4 py-3 text-right text-muted tabular-nums hidden sm:table-cell">{p.total_games}</td>
                   </tr>
                 ))}
               </tbody>

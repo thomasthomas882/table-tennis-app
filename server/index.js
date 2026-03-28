@@ -280,6 +280,34 @@ app.get('/api/stats', (req, res) => {
   res.json({ totalPlayers, totalMatches, activeMatches, queueLength });
 });
 
+// ─── Reset ────────────────────────────────────────────────────────────────────
+
+app.post('/api/reset', (req, res) => {
+  db.exec('BEGIN');
+  try {
+    db.exec('DELETE FROM matches');
+    db.exec('DELETE FROM queue');
+    db.exec('DELETE FROM players');
+    db.exec("DELETE FROM tables_tt");
+    // Re-seed default tables
+    const insert = db.prepare("INSERT INTO tables_tt (name) VALUES (?)");
+    insert.run('Table 1');
+    insert.run('Table 2');
+    insert.run('Table 3');
+    insert.run('Table 4');
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Reset failed' });
+  }
+  broadcast('players:updated', []);
+  broadcast('queue:updated', []);
+  broadcast('tables:updated', getTables());
+  broadcast('match:completed', null);
+  notify('Everything has been reset!', 'warning');
+  res.json({ ok: true });
+});
+
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {

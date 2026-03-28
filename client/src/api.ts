@@ -42,4 +42,7 @@ export const api = {
 
   // Stats
   getStats: () => request('/stats'),
+
+  // Admin
+  resetAll: () => request('/reset', { method: 'POST' }),
 };

@@ -10,8 +10,11 @@ import QueuePage from './pages/QueuePage';
 import MatchesPage from './pages/MatchesPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import PlayersPage from './pages/PlayersPage';
+import SettingsPage from './pages/SettingsPage';
 
 // ─── App Context ─────────────────────────────────────────────────────────────
+
+type Theme = 'dark' | 'light';
 
 interface AppCtx {
   players: Player[];
@@ -21,11 +24,14 @@ interface AppCtx {
   stats: Stats | null;
   connected: boolean;
   refreshStats: () => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
 }
 
 const AppContext = createContext<AppCtx>({
   players: [], queue: [], tables: [], activeMatches: [],
   stats: null, connected: false, refreshStats: () => {},
+  theme: 'dark', setTheme: () => {},
 });
 
 export function useApp() {
@@ -42,6 +48,19 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [connected, setConnected] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return (localStorage.getItem('pingtrack-theme') as Theme) || 'dark';
+  });
+
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    localStorage.setItem('pingtrack-theme', t);
+  };
+
+  // Apply theme class to html element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const refreshStats = () => {
     api.getStats().then((s) => setStats(s as Stats)).catch(() => {});
@@ -78,8 +97,8 @@ export default function App() {
       setActiveMatches((prev) => prev.map((m) => (m.id === match.id ? match : m)));
     });
 
-    socket.on('match:completed', (match: Match) => {
-      setActiveMatches((prev) => prev.filter((m) => m.id !== match.id));
+    socket.on('match:completed', () => {
+      api.getMatches('in_progress').then((m) => setActiveMatches(m as Match[])).catch(() => {});
       refreshStats();
     });
 
@@ -97,8 +116,8 @@ export default function App() {
   };
 
   return (
-    <AppContext.Provider value={{ players, queue, tables, activeMatches, stats, connected, refreshStats }}>
-      <div className="min-h-screen bg-[#0f172a] text-white">
+    <AppContext.Provider value={{ players, queue, tables, activeMatches, stats, connected, refreshStats, theme, setTheme }}>
+      <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
         <main className="max-w-7xl mx-auto px-4 py-6">
           <Routes>
@@ -107,6 +126,7 @@ export default function App() {
             <Route path="/matches" element={<MatchesPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/players" element={<PlayersPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
