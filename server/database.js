@@ -1,7 +1,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 
-const db = new DatabaseSync(path.join(__dirname, 'tabletennis.db'));
+const db = new DatabaseSync(process.env.DB_PATH || path.join(__dirname, 'tabletennis.db'));
 
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');

@@ -2,15 +2,44 @@
   "name": "table-tennis-app",
   "version": "1.0.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
-    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "electron:dev": "npm run build && electron .",
+    "electron:build": "npm run build && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.pingtrack.app",
+    "productName": "PingTrack",
+    "asar": false,
+    "directories": {
+      "output": "dist-app"
+    },
+    "files": [
+      "electron/**",
+      "server/**",
+      "!server/tabletennis.db",
+      "client/dist/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PingTrack"
+    }
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
   }
 }
