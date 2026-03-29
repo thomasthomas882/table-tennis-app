@@ -114,9 +114,9 @@ export default function Dashboard() {
                 <ol className="space-y-2 stagger">
                   {queue.slice(0, 5).map((entry, i) => (
                     <li key={entry.id} className="flex items-center gap-3 text-sm animate-slide-up">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        i === 0 ? 'bg-green-500 text-black' : 'bg-card border border-theme text-secondary'
-                      }`}>{i + 1}</span>
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-card border border-theme text-secondary">
+                        {i + 1}
+                      </span>
                       <span className="flex-1">{entry.name}</span>
                       <span className="text-muted text-xs">ELO {entry.elo}</span>
                     </li>

@@ -6,8 +6,8 @@ const links = [
   { to: '/', label: 'Dashboard', icon: '⊞' },
   { to: '/queue', label: 'Queue', icon: '⏳' },
   { to: '/matches', label: 'Matches', icon: '🏓' },
-  { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/players', label: 'Players', icon: '👤' },
+  { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -20,12 +20,9 @@ function DigitalClock() {
   }, []);
 
   return (
-    <div className="flex flex-col items-end font-mono tabular-nums select-none border-l border-theme pl-3 ml-1">
-      <span className="text-sm font-bold text-primary leading-none">
+    <div className="font-mono tabular-nums select-none border-l border-theme pl-3 ml-1">
+      <span className="text-base font-bold text-primary">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-      </span>
-      <span className="text-[10px] text-muted leading-none mt-0.5">
-        {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
       </span>
     </div>
   );
@@ -42,6 +39,9 @@ export default function Navbar({ connected }: { connected: boolean }) {
           <span className="text-2xl">🏓</span>
           <span className="bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent hidden sm:inline">
             PingTrack
+          </span>
+          <span className="hidden sm:inline text-[10px] font-semibold tracking-widest uppercase px-1.5 py-0.5 rounded-full border border-yellow-500/50 text-yellow-400 bg-yellow-500/10 leading-none">
+            beta
           </span>
         </div>
 
