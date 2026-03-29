@@ -2,6 +2,92 @@ import { useState } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
 
+const GUIDE_STEPS = [
+  {
+    icon: '👤',
+    title: 'Add Players',
+    desc: 'Head to the Players tab and add every club member by name. Each player starts with a 1000 ELO rating.',
+  },
+  {
+    icon: '🏓',
+    title: 'Set Up Tables',
+    desc: 'In Settings → Tables, add the tables available at your venue (e.g. "Table 1", "Main Table").',
+  },
+  {
+    icon: '⏳',
+    title: 'Build the Queue',
+    desc: 'Go to the Queue tab. Search for players and click the + button to add them to the waiting list. Drag rows to reorder.',
+  },
+  {
+    icon: '▶',
+    title: 'Start a Match',
+    desc: 'In the Queue tab, drag players from the waiting list onto a table card — left side and right side. Hit "Start Match" when ready. Supports singles (1v1) and doubles (2v2).',
+  },
+  {
+    icon: '✓',
+    title: 'Complete a Match',
+    desc: 'Open the Matches tab, find the active match, and click "Complete". Enter the final score and confirm — ELO ratings update automatically.',
+  },
+  {
+    icon: '🏆',
+    title: 'Check the Leaderboard',
+    desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, and win rate are all tracked.',
+  },
+  {
+    icon: '⊞',
+    title: 'Dashboard Overview',
+    desc: 'The Dashboard shows you everything at a glance: active matches with a live timer, the current queue, and recent match results.',
+  },
+];
+
+function GuideModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}
+    >
+      <div
+        className="card w-full max-w-lg max-h-[85vh] overflow-y-auto animate-slide-up"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-bold">How to Use PingTrack</h2>
+            <p className="text-secondary text-xs mt-0.5">A quick step-by-step guide</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted hover:text-primary transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-card"
+          >
+            ×
+          </button>
+        </div>
+        <ol className="space-y-4">
+          {GUIDE_STEPS.map((step, i) => (
+            <li key={i} className="flex gap-3">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-xs font-bold text-green-400">
+                {i + 1}
+              </div>
+              <div className="pt-0.5">
+                <p className="font-semibold text-sm flex items-center gap-1.5">
+                  <span>{step.icon}</span> {step.title}
+                </p>
+                <p className="text-secondary text-xs mt-1 leading-relaxed">{step.desc}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 pt-4 border-t border-theme">
+          <p className="text-xs text-muted text-center">
+            PingTrack is in beta — ratings and data persist across sessions.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { theme, setTheme, tables } = useApp();
   const [newTable, setNewTable] = useState('');
@@ -9,6 +95,7 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   async function addTable(e: React.FormEvent) {
     e.preventDefault();
@@ -50,7 +137,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
+    <div className="space-y-6 animate-fade-in max-w-3xl">
+      {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+
       <h1 className="text-2xl font-bold">Settings</h1>
 
       {error && (
@@ -60,38 +149,55 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Theme Toggle */}
-      <div className="card">
-        <h2 className="font-semibold text-lg mb-1">Appearance</h2>
-        <p className="text-secondary text-sm mb-4">Choose your preferred theme.</p>
-        <div className="flex gap-3">
+      {/* Appearance + Help side by side */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* Theme Toggle */}
+        <div className="card">
+          <h2 className="font-semibold text-lg mb-1">Appearance</h2>
+          <p className="text-secondary text-sm mb-4">Choose your preferred theme.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+                theme === 'dark'
+                  ? 'border-green-500 bg-green-500/10'
+                  : 'border-theme hover:border-hover'
+              }`}
+            >
+              <span className="text-2xl">🌙</span>
+              <div className="text-left">
+                <p className="font-medium">Dark</p>
+                <p className="text-muted text-xs">Easy on the eyes</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setTheme('light')}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+                theme === 'light'
+                  ? 'border-green-500 bg-green-500/10'
+                  : 'border-theme hover:border-hover'
+              }`}
+            >
+              <span className="text-2xl">☀️</span>
+              <div className="text-left">
+                <p className="font-medium">Light</p>
+                <p className="text-muted text-xs">Bright and clean</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Help */}
+        <div className="card flex flex-col">
+          <h2 className="font-semibold text-lg mb-1">Help</h2>
+          <p className="text-secondary text-sm mb-4 flex-1">
+            New to PingTrack? The guide walks you through every step — from adding players to completing matches.
+          </p>
           <button
-            onClick={() => setTheme('dark')}
-            className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
-              theme === 'dark'
-                ? 'border-green-500 bg-green-500/10'
-                : 'border-theme hover:border-hover'
-            }`}
+            onClick={() => setShowGuide(true)}
+            className="btn-primary flex items-center justify-center gap-2 w-full"
           >
-            <span className="text-2xl">🌙</span>
-            <div className="text-left">
-              <p className="font-medium">Dark</p>
-              <p className="text-muted text-xs">Easy on the eyes</p>
-            </div>
-          </button>
-          <button
-            onClick={() => setTheme('light')}
-            className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
-              theme === 'light'
-                ? 'border-green-500 bg-green-500/10'
-                : 'border-theme hover:border-hover'
-            }`}
-          >
-            <span className="text-2xl">☀️</span>
-            <div className="text-left">
-              <p className="font-medium">Light</p>
-              <p className="text-muted text-xs">Bright and clean</p>
-            </div>
+            <span>📖</span> Open Guide
           </button>
         </div>
       </div>
