@@ -10,38 +10,42 @@ function parseUTC(s: string) {
 
 function PingPongAnimation() {
   const DUR = '2.2s';
-  const ballX   = '18;75;158;75;18';
-  const ballY   = '34;6;34;6;34';
+  // Ball travels between the two paddles; paddles sit at x=18 and x=162
+  const ballX   = '18;88;162;88;18';
+  const ballY   = '34;8;34;8;34';
   const times   = '0;0.25;0.5;0.75;1';
   const splines = '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1';
+  // Specular highlight offset: +2 in x, -3 in y (inside the ball, not on the edge)
+  const hlX = '20;90;164;90;20';
+  const hlY = '31;5;31;5;31';
 
   return (
     <div className="flex justify-center items-center py-1">
-      <svg width="176" height="56" viewBox="0 0 176 56" fill="none">
+      {/* viewBox expanded left/right to fully show rotating paddles */}
+      <svg width="196" height="60" viewBox="-10 -4 196 60" fill="none">
         <defs>
-          {/* CSS keyframes inside defs — fully supported, avoids SMIL keyTimes bugs */}
           <style>{`
             @keyframes ppSwingL {
               0%   { transform: rotate(-7deg); }
-              4%   { transform: rotate(13deg); }
-              16%  { transform: rotate(-7deg); }
+              4%   { transform: rotate(14deg); }
+              18%  { transform: rotate(-7deg); }
               100% { transform: rotate(-7deg); }
             }
             @keyframes ppSwingR {
               0%   { transform: rotate(7deg); }
               50%  { transform: rotate(7deg); }
-              54%  { transform: rotate(-13deg); }
-              66%  { transform: rotate(7deg); }
+              54%  { transform: rotate(-14deg); }
+              68%  { transform: rotate(7deg); }
               100% { transform: rotate(7deg); }
             }
             .pp-paddle-l {
               transform-box: fill-box;
-              transform-origin: 50% 88%;
+              transform-origin: 50% 85%;
               animation: ppSwingL ${DUR} ease-in-out infinite;
             }
             .pp-paddle-r {
               transform-box: fill-box;
-              transform-origin: 50% 88%;
+              transform-origin: 50% 85%;
               animation: ppSwingR ${DUR} ease-in-out infinite;
             }
           `}</style>
@@ -65,34 +69,32 @@ function PingPongAnimation() {
           </radialGradient>
         </defs>
 
-        {/* ── Table ── */}
-        <rect x="14" y="38" width="148" height="5" rx="1" fill="url(#ppEdgeGrad)" opacity="0.9"/>
-        <rect x="14" y="28" width="148" height="12" rx="2" fill="url(#ppTableGrad)"/>
-        <rect x="14" y="28" width="148" height="1.5" rx="0.5" fill="white" opacity="0.25"/>
-        <line x1="16" y1="29.5" x2="16" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
-        <line x1="160" y1="29.5" x2="160" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
+        {/* ── Table (narrowed to leave paddle room) ── */}
+        <rect x="28" y="38" width="124" height="5" rx="1" fill="url(#ppEdgeGrad)" opacity="0.9"/>
+        <rect x="28" y="28" width="124" height="12" rx="2" fill="url(#ppTableGrad)"/>
+        <rect x="28" y="28" width="124" height="1.5" rx="0.5" fill="white" opacity="0.25"/>
+        <line x1="30" y1="29.5" x2="30" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
+        <line x1="150" y1="29.5" x2="150" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
         <line x1="88" y1="29.5" x2="88" y2="37.5" stroke="white" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.3"/>
         {/* Net */}
         <rect x="85.5" y="20" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
         <rect x="89" y="20" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
         <line x1="86" y1="20" x2="90" y2="20" stroke="white" strokeWidth="1.2" opacity="0.7"/>
-        <rect x="86" y="20" width="4" height="8" fill="none" stroke="white" strokeWidth="0.5"
-          strokeDasharray="1.5 1.5" opacity="0.35"/>
 
-        {/* ── Left paddle (CSS-animated group) ── */}
+        {/* ── Left paddle ── */}
         <g className="pp-paddle-l">
-          <rect x="3"  y="33" width="6" height="13" rx="3" fill="#78350f"/>
-          <ellipse cx="6" cy="24" rx="8"  ry="11" fill="#d97706" opacity="0.9"/>
-          <ellipse cx="6" cy="24" rx="7"  ry="10" fill="url(#ppPaddleGrad)"/>
-          <ellipse cx="4" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
+          <rect x="14" y="33" width="6" height="13" rx="3" fill="#78350f"/>
+          <ellipse cx="18" cy="24" rx="8" ry="11" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="18" cy="24" rx="7" ry="10" fill="url(#ppPaddleGrad)"/>
+          <ellipse cx="16" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
         </g>
 
-        {/* ── Right paddle (CSS-animated group) ── */}
+        {/* ── Right paddle ── */}
         <g className="pp-paddle-r">
-          <rect x="167" y="33" width="6" height="13" rx="3" fill="#78350f"/>
-          <ellipse cx="170" cy="24" rx="8"  ry="11" fill="#d97706" opacity="0.9"/>
-          <ellipse cx="170" cy="24" rx="7"  ry="10" fill="url(#ppPaddleGrad)"/>
-          <ellipse cx="168" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
+          <rect x="160" y="33" width="6" height="13" rx="3" fill="#78350f"/>
+          <ellipse cx="162" cy="24" rx="8" ry="11" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="162" cy="24" rx="7" ry="10" fill="url(#ppPaddleGrad)"/>
+          <ellipse cx="160" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
         </g>
 
         {/* ── Ball shadow ── */}
@@ -116,42 +118,14 @@ function PingPongAnimation() {
             calcMode="spline" keySplines={splines}/>
         </circle>
 
-        {/* ── Spin seam (SMIL rotate is fine here — no keyTimes 0→1 issue since values are cumulative) ── */}
-        <ellipse rx="6" ry="2" fill="none" stroke="#c8c8be" strokeWidth="0.9" opacity="0.45">
-          <animate attributeName="cx"
-            values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite"
-            calcMode="spline" keySplines={splines}/>
-          <animate attributeName="cy"
-            values={ballY} keyTimes={times} dur={DUR} repeatCount="indefinite"
-            calcMode="spline" keySplines={splines}/>
-          <animateTransform attributeName="transform" type="rotate"
-            from="0" to="360" dur={DUR} repeatCount="indefinite" additive="sum"/>
-        </ellipse>
-
-        {/* ── Ball specular highlight ── */}
+        {/* ── Ball specular highlight (offset -3 from center so it stays inside the ball) ── */}
         <circle r="2" fill="white" opacity="0.65">
           <animate attributeName="cx"
-            values="21;78;161;78;21" keyTimes={times} dur={DUR} repeatCount="indefinite"
+            values={hlX} keyTimes={times} dur={DUR} repeatCount="indefinite"
             calcMode="spline" keySplines={splines}/>
           <animate attributeName="cy"
-            values="28;2;28;2;28" keyTimes={times} dur={DUR} repeatCount="indefinite"
+            values={hlY} keyTimes={times} dur={DUR} repeatCount="indefinite"
             calcMode="spline" keySplines={splines}/>
-        </circle>
-
-        {/* ── Impact flash left ── */}
-        <circle cx="18" cy="27" r="2" fill="#fed7aa" opacity="0">
-          <animate attributeName="opacity"
-            values="0;0.7;0;0;0" keyTimes="0;0.04;0.10;0.5;1" dur={DUR} repeatCount="indefinite"/>
-          <animate attributeName="r"
-            values="2;7;2;2;2"  keyTimes="0;0.04;0.10;0.5;1" dur={DUR} repeatCount="indefinite"/>
-        </circle>
-
-        {/* ── Impact flash right ── */}
-        <circle cx="158" cy="27" r="2" fill="#fed7aa" opacity="0">
-          <animate attributeName="opacity"
-            values="0;0;0;0.7;0" keyTimes="0;0.46;0.50;0.54;0.62" dur={DUR} repeatCount="indefinite"/>
-          <animate attributeName="r"
-            values="2;2;2;7;2"  keyTimes="0;0.46;0.50;0.54;0.62" dur={DUR} repeatCount="indefinite"/>
         </circle>
       </svg>
     </div>
