@@ -20,7 +20,7 @@ function DigitalClock() {
   }, []);
 
   return (
-    <div className="hidden md:flex flex-col items-end flex-shrink-0 font-mono tabular-nums select-none">
+    <div className="flex flex-col items-end font-mono tabular-nums select-none border-l border-theme pl-3 ml-1">
       <span className="text-sm font-bold text-primary leading-none">
         {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </span>
@@ -36,7 +36,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
 
   return (
     <nav className="bg-nav backdrop-blur-sm border-b border-theme sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14 gap-4">
+      <div className="max-w-7xl mx-auto px-4 flex items-center h-14 gap-3">
         {/* Logo */}
         <div className="flex items-center gap-2 font-bold text-lg flex-shrink-0">
           <span className="text-2xl">🏓</span>
@@ -45,7 +45,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
           </span>
         </div>
 
-        {/* Nav links */}
+        {/* Nav links — centered with flex-1 */}
         <div className="flex items-center gap-0.5 flex-1 justify-center">
           {links.map(({ to, label, icon }) => (
             <NavLink
@@ -76,15 +76,15 @@ export default function Navbar({ connected }: { connected: boolean }) {
           ))}
         </div>
 
-        {/* Right: clock + connection status */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <DigitalClock />
+        {/* Right side: connection status then clock at far edge */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex items-center gap-1.5 text-xs">
             <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${connected ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-600'}`} />
             <span className={`hidden sm:inline transition-colors duration-500 ${connected ? 'text-green-400' : 'text-muted'}`}>
               {connected ? 'Live' : 'Offline'}
             </span>
           </div>
+          <DigitalClock />
         </div>
       </div>
     </nav>

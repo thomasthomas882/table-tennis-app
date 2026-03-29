@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { Notification } from '../types';
+import { sounds } from '../utils/sounds';
 
 const typeStyles: Record<Notification['type'], string> = {
   info: 'bg-blue-900/80 border-blue-700 text-blue-100',
@@ -20,6 +22,15 @@ interface Props {
 }
 
 export default function NotificationToast({ notifications, onDismiss }: Props) {
+  const prevLen = useRef(0);
+
+  useEffect(() => {
+    if (notifications.length > prevLen.current && notifications[0]) {
+      sounds.notification(notifications[0].type);
+    }
+    prevLen.current = notifications.length;
+  }, [notifications]);
+
   if (notifications.length === 0) return null;
 
   return (
@@ -34,9 +45,7 @@ export default function NotificationToast({ notifications, onDismiss }: Props) {
           <button
             onClick={() => onDismiss(n.id)}
             className="text-current opacity-60 hover:opacity-100 flex-shrink-0 text-lg leading-none"
-          >
-            ×
-          </button>
+          >×</button>
         </div>
       ))}
     </div>

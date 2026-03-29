@@ -122,7 +122,7 @@ app.patch('/api/queue/reorder', (req, res) => {
 // ─── Tables ──────────────────────────────────────────────────────────────────
 
 function getTables() {
-  return db.prepare('SELECT * FROM tables_tt ORDER BY id').all();
+  return db.prepare('SELECT * FROM tables_tt ORDER BY COALESCE(position, id)').all();
 }
 
 app.get('/api/tables', (req, res) => res.json(getTables()));
@@ -145,6 +145,27 @@ app.delete('/api/tables/:id', (req, res) => {
   db.prepare('DELETE FROM tables_tt WHERE id = ?').run(req.params.id);
   broadcast('tables:updated', getTables());
   res.json({ ok: true });
+});
+
+// Reorder tables
+app.patch('/api/tables/reorder', (req, res) => {
+  const { tableIds } = req.body;
+  if (!Array.isArray(tableIds)) return res.status(400).json({ error: 'tableIds array required' });
+
+  db.exec('BEGIN');
+  try {
+    tableIds.forEach((id, idx) => {
+      db.prepare('UPDATE tables_tt SET position = ? WHERE id = ?').run(idx, id);
+    });
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Reorder failed' });
+  }
+
+  const tables = getTables();
+  broadcast('tables:updated', tables);
+  res.json(tables);
 });
 
 // ─── Matches ─────────────────────────────────────────────────────────────────

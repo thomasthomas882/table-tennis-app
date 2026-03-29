@@ -56,6 +56,7 @@ db.exec(`
 try { db.exec('ALTER TABLE queue ADD COLUMN position INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN player3_id INTEGER REFERENCES players(id)'); } catch (_) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN player4_id INTEGER REFERENCES players(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE tables_tt ADD COLUMN position INTEGER'); } catch (_) {}
 
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;

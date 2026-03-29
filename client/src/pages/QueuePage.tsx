@@ -1,19 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
-import { QueueEntry, Player, Table } from '../types';
+import { Player, Table } from '../types';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { sounds } from '../utils/sounds';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface TableSides { A: number[]; B: number[] }
-type Assignments = { [tableId: number]: TableSides };
-type DragSource = 'queue' | 'available';
+type Assignments = { [tableId: number]: TableSides }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Avatar ──────────────────────────────────────────────────────────────────
 
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
-  const sz = size === 'sm' ? 'w-7 h-7 text-xs' : size === 'lg' ? 'w-12 h-12 text-xl' : 'w-9 h-9 text-sm';
+function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  const sz = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm';
   return (
     <div className={`${sz} rounded-full bg-gradient-to-br from-green-500/30 to-green-700/20 border border-green-500/30 flex items-center justify-center text-green-400 font-bold flex-shrink-0`}>
       {name[0].toUpperCase()}
@@ -21,60 +21,97 @@ function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg'
   );
 }
 
-// ─── Table visual ─────────────────────────────────────────────────────────────
-
-interface TableCardProps {
-  table: Table;
-  sides: TableSides;
-  dragOverSide: 'A' | 'B' | null;
-  onDragOver: (e: React.DragEvent, side: 'A' | 'B') => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent, side: 'A' | 'B') => void;
-  onRemovePlayer: (playerId: number, side: 'A' | 'B') => void;
-  onStartMatch: () => void;
-  onClear: () => void;
-  allPlayers: Player[];
-  starting: boolean;
-}
+// ─── Player bubble on table ──────────────────────────────────────────────────
 
 function PlayerBubbleOnTable({
-  playerId, allPlayers, onRemove, side,
+  playerId, allPlayers, onRemove, side, compact,
 }: {
-  playerId: number; allPlayers: Player[]; onRemove: () => void; side: 'A' | 'B';
+  playerId: number; allPlayers: Player[]; onRemove: () => void;
+  side: 'A' | 'B'; compact: boolean;
 }) {
   const player = allPlayers.find(p => p.id === playerId);
   if (!player) return null;
+
+  const ring = compact ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm';
+  const label = compact ? 'text-[9px] max-w-[38px]' : 'text-[10px] max-w-[52px]';
+
   return (
-    <div className={`group relative flex flex-col items-center gap-0.5 ${side === 'A' ? 'animate-slide-in-left' : 'animate-slide-in-right'}`}>
+    <div
+      className={`group relative flex flex-col items-center gap-0.5 ${
+        side === 'A' ? 'animate-slide-in-left' : 'animate-slide-in-right'
+      }`}
+      style={{ transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
+    >
       <div className="relative">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/40 to-green-600/30 border-2 border-green-400/60 flex items-center justify-center text-green-300 font-bold text-sm shadow-[0_0_10px_rgba(74,222,128,0.3)]">
+        <div
+          className={`${ring} rounded-full bg-gradient-to-br from-green-400/40 to-green-600/30 border-2 border-green-400/60 flex items-center justify-center text-green-300 font-bold shadow-[0_0_10px_rgba(74,222,128,0.35)] transition-all duration-300`}
+        >
           {player.name[0].toUpperCase()}
         </div>
         <button
-          onClick={onRemove}
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => { sounds.remove(); onRemove(); }}
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
         >×</button>
       </div>
-      <span className="text-[10px] text-white/80 font-medium text-center max-w-[48px] truncate leading-tight">
+      <span className={`${label} text-white/80 font-medium text-center truncate leading-tight transition-all duration-300`}>
         {player.name.split(' ')[0]}
       </span>
     </div>
   );
 }
 
+// ─── Table card ───────────────────────────────────────────────────────────────
+
+interface TableCardProps {
+  table: Table;
+  sides: TableSides;
+  dragOverSide: 'A' | 'B' | null;
+  isDragOver: boolean;      // for reorder highlight
+  isDragging: boolean;      // this card being dragged
+  onDragOver: (e: React.DragEvent, side: 'A' | 'B') => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, side: 'A' | 'B') => void;
+  onRemovePlayer: (playerId: number, side: 'A' | 'B') => void;
+  onStartMatch: () => void;
+  onClear: () => void;
+  onCardDragStart: (e: React.DragEvent) => void;
+  onCardDragOver: (e: React.DragEvent) => void;
+  onCardDrop: (e: React.DragEvent) => void;
+  allPlayers: Player[];
+  starting: boolean;
+}
+
 function TableCard({
-  table, sides, dragOverSide, onDragOver, onDragLeave, onDrop,
-  onRemovePlayer, onStartMatch, onClear, allPlayers, starting,
+  table, sides, dragOverSide, isDragOver, isDragging,
+  onDragOver, onDragLeave, onDrop,
+  onRemovePlayer, onStartMatch, onClear,
+  onCardDragStart, onCardDragOver, onCardDrop,
+  allPlayers, starting,
 }: TableCardProps) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
   const hasAssignments = sides.A.length + sides.B.length > 0;
 
   return (
-    <div className={`card !p-4 space-y-3 transition-all duration-200 ${canStart && !isOccupied ? 'border-green-500/40 shadow-[0_0_20px_rgba(74,222,128,0.08)]' : ''}`}>
-      {/* Header */}
+    <div
+      onDragOver={onCardDragOver}
+      onDrop={onCardDrop}
+      className={`card !p-4 space-y-3 transition-all duration-200 ${
+        isDragging ? 'opacity-40 scale-95' : ''
+      } ${isDragOver ? 'border-blue-400/60 bg-blue-400/5 scale-[1.01]' : ''} ${
+        canStart && !isOccupied ? 'border-green-500/40 shadow-[0_0_20px_rgba(74,222,128,0.08)]' : ''
+      }`}
+    >
+      {/* Header with drag handle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {/* Table drag handle */}
+          <span
+            draggable
+            onDragStart={e => { sounds.pickup(); onCardDragStart(e); }}
+            className="text-muted cursor-grab active:cursor-grabbing text-base leading-none select-none hover:text-secondary transition-colors"
+            title="Drag to reorder table"
+          >⠿</span>
           <span className="font-semibold text-sm">{table.name}</span>
           {isOccupied && <span className="badge bg-orange-500/20 text-orange-400 text-[10px]">In Use</span>}
         </div>
@@ -84,95 +121,108 @@ function TableCard({
         </div>
       </div>
 
-      {/* Table visual */}
-      <div className={`relative rounded-xl overflow-hidden h-36 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
-        style={{ background: 'linear-gradient(160deg, #064e3b 0%, #065f46 50%, #047857 100%)' }}>
-
-        {/* Table surface lines */}
+      {/* Table surface */}
+      <div
+        className={`relative rounded-xl overflow-hidden h-36 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
+        style={{ background: 'linear-gradient(160deg, #064e3b 0%, #065f46 50%, #047857 100%)' }}
+      >
+        {/* Boundary lines */}
         <div className="absolute inset-[5px] border border-white/20 rounded-lg pointer-events-none" />
-        {/* Center short line */}
+        {/* Center divider line */}
         <div className="absolute top-[5px] bottom-[5px] left-1/2 w-px bg-white/25 pointer-events-none" />
-
-        {/* Net */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 pointer-events-none"
-          style={{ background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 3px, transparent 3px, transparent 7px)', borderLeft: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.2)' }} />
-
-        {/* Side A drop zone */}
+        {/* Net texture */}
         <div
-          onDragOver={isOccupied ? undefined : (e) => onDragOver(e, 'A')}
+          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 pointer-events-none"
+          style={{
+            background: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 3px, transparent 3px, transparent 7px)',
+            borderLeft: '1px solid rgba(255,255,255,0.2)',
+            borderRight: '1px solid rgba(255,255,255,0.2)',
+          }}
+        />
+
+        {/* Side A */}
+        <div
+          onDragOver={isOccupied ? undefined : e => onDragOver(e, 'A')}
           onDragLeave={isOccupied ? undefined : onDragLeave}
-          onDrop={isOccupied ? undefined : (e) => onDrop(e, 'A')}
-          className={`absolute top-0 bottom-0 left-0 right-1/2 flex flex-col items-center justify-center gap-1.5 transition-all duration-150 ${
-            dragOverSide === 'A' && !isOccupied ? 'bg-blue-400/20' : ''
+          onDrop={isOccupied ? undefined : e => onDrop(e, 'A')}
+          className={`absolute top-0 bottom-0 left-0 right-1/2 flex items-center justify-center transition-all duration-150 ${
+            dragOverSide === 'A' && !isOccupied ? 'bg-blue-400/25' : ''
           }`}
         >
-          {sides.A.length === 0 && !isOccupied ? (
-            <div className={`flex flex-col items-center gap-1 transition-opacity ${dragOverSide === 'A' ? 'opacity-100' : 'opacity-40'}`}>
-              <span className="text-xl">👤</span>
-              <span className="text-[10px] text-white/50 font-medium">Side A</span>
-            </div>
-          ) : (
-            sides.A.map(pid => (
-              <PlayerBubbleOnTable
-                key={pid} playerId={pid} allPlayers={allPlayers} side="A"
-                onRemove={() => onRemovePlayer(pid, 'A')}
-              />
-            ))
-          )}
-        </div>
-
-        {/* Side B drop zone */}
-        <div
-          onDragOver={isOccupied ? undefined : (e) => onDragOver(e, 'B')}
-          onDragLeave={isOccupied ? undefined : onDragLeave}
-          onDrop={isOccupied ? undefined : (e) => onDrop(e, 'B')}
-          className={`absolute top-0 bottom-0 right-0 left-1/2 flex flex-col items-center justify-center gap-1.5 transition-all duration-150 ${
-            dragOverSide === 'B' && !isOccupied ? 'bg-purple-400/20' : ''
-          }`}
-        >
-          {sides.B.length === 0 && !isOccupied ? (
-            <div className={`flex flex-col items-center gap-1 transition-opacity ${dragOverSide === 'B' ? 'opacity-100' : 'opacity-40'}`}>
-              <span className="text-xl">👤</span>
-              <span className="text-[10px] text-white/50 font-medium">Side B</span>
-            </div>
-          ) : (
-            sides.B.map(pid => (
-              <PlayerBubbleOnTable
-                key={pid} playerId={pid} allPlayers={allPlayers} side="B"
-                onRemove={() => onRemovePlayer(pid, 'B')}
-              />
-            ))
-          )}
-        </div>
-
-        {/* Drag-over overlay label */}
-        {!isOccupied && (dragOverSide === 'A' || dragOverSide === 'B') && (
-          <div className={`absolute top-0 bottom-0 pointer-events-none flex items-center justify-center ${dragOverSide === 'A' ? 'left-0 right-1/2 text-blue-300' : 'right-0 left-1/2 text-purple-300'}`}>
-            <span className="text-2xl animate-bubble-pop">＋</span>
+          <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.A.length === 2 ? 'flex-row' : 'flex-col'}`}>
+            {sides.A.length === 0 && !isOccupied ? (
+              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'A' ? 'opacity-100' : 'opacity-35'}`}>
+                <span className="text-2xl">👤</span>
+                <span className="text-[10px] text-white/50 font-medium">Side A</span>
+              </div>
+            ) : (
+              sides.A.map(pid => (
+                <PlayerBubbleOnTable
+                  key={pid} playerId={pid} allPlayers={allPlayers} side="A"
+                  onRemove={() => onRemovePlayer(pid, 'A')} compact={sides.A.length === 2}
+                />
+              ))
+            )}
           </div>
-        )}
+          {dragOverSide === 'A' && !isOccupied && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="text-2xl text-blue-300 animate-bubble-pop">＋</span>
+            </div>
+          )}
+        </div>
+
+        {/* Side B */}
+        <div
+          onDragOver={isOccupied ? undefined : e => onDragOver(e, 'B')}
+          onDragLeave={isOccupied ? undefined : onDragLeave}
+          onDrop={isOccupied ? undefined : e => onDrop(e, 'B')}
+          className={`absolute top-0 bottom-0 right-0 left-1/2 flex items-center justify-center transition-all duration-150 ${
+            dragOverSide === 'B' && !isOccupied ? 'bg-purple-400/25' : ''
+          }`}
+        >
+          <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.B.length === 2 ? 'flex-row' : 'flex-col'}`}>
+            {sides.B.length === 0 && !isOccupied ? (
+              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'B' ? 'opacity-100' : 'opacity-35'}`}>
+                <span className="text-2xl">👤</span>
+                <span className="text-[10px] text-white/50 font-medium">Side B</span>
+              </div>
+            ) : (
+              sides.B.map(pid => (
+                <PlayerBubbleOnTable
+                  key={pid} playerId={pid} allPlayers={allPlayers} side="B"
+                  onRemove={() => onRemovePlayer(pid, 'B')} compact={sides.B.length === 2}
+                />
+              ))
+            )}
+          </div>
+          {dragOverSide === 'B' && !isOccupied && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="text-2xl text-purple-300 animate-bubble-pop">＋</span>
+            </div>
+          )}
+        </div>
 
         {isOccupied && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
             <span className="text-white/60 text-xs font-semibold">Match in progress</span>
           </div>
         )}
       </div>
 
-      {/* Actions */}
+      {/* Footer */}
       {!isOccupied && (
         <div className="flex gap-2">
           {canStart ? (
             <button
-              onClick={onStartMatch}
+              onClick={() => { sounds.startMatch(); onStartMatch(); }}
               disabled={starting}
               className="btn-primary flex-1 text-sm py-2 flex items-center justify-center gap-1.5"
             >
               {starting ? 'Starting…' : '🏓 Start Match'}
             </button>
           ) : (
-            <p className="flex-1 text-center text-xs text-muted py-2">
-              {isOccupied ? 'Table occupied' : 'Drag players to both sides'}
+            <p className="flex-1 text-center text-xs text-muted py-2 italic">
+              Drag players to both sides
             </p>
           )}
           {hasAssignments && (
@@ -189,34 +239,49 @@ function TableCard({
 export default function QueuePage() {
   const { players, queue, tables, activeMatches } = useApp();
 
-  // Drag state
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [dragSource, setDragSource] = useState<DragSource>('queue');
+  // ── Local ordered tables (optimistic reorder) ──────────────────
+  const [localTableIds, setLocalTableIds] = useState<number[]>([]);
+  useEffect(() => {
+    setLocalTableIds(prev => {
+      // Add any new tables not yet tracked, remove deleted ones
+      const existing = new Set(prev);
+      const incoming = new Set(tables.map(t => t.id));
+      const merged = prev.filter(id => incoming.has(id));
+      const added = tables.filter(t => !existing.has(t.id)).map(t => t.id);
+      return [...merged, ...added];
+    });
+  }, [tables]);
+  const orderedTables = localTableIds.map(id => tables.find(t => t.id === id)).filter(Boolean) as Table[];
+
+  // ── Player drag state ──────────────────────────────────────────
+  const [draggedPlayerId, setDraggedPlayerId] = useState<number | null>(null);
   const [dragOverQueueId, setDragOverQueueId] = useState<number | null>(null);
   const [dragOverTableSide, setDragOverTableSide] = useState<{ id: number; side: 'A' | 'B' } | null>(null);
-  const dragCounter = useRef(0); // track nested dragenter/leave
 
-  // Table assignments (client-side staging before starting a match)
+  // ── Table drag-to-reorder state ────────────────────────────────
+  const [draggedTableId, setDraggedTableId] = useState<number | null>(null);
+  const [dragOverTableReorderId, setDragOverTableReorderId] = useState<number | null>(null);
+
+  // ── Table assignments ──────────────────────────────────────────
   const [assignments, setAssignments] = useState<Assignments>({});
   const [starting, setStarting] = useState<number | null>(null);
 
-  // Add to queue form
+  // ── Queue form ─────────────────────────────────────────────────
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Derived data
+  // ── Derived ────────────────────────────────────────────────────
   const queuedIds = new Set(queue.map(q => q.player_id));
   const activeIds = new Set([
     ...activeMatches.map(m => m.player1_id),
     ...activeMatches.map(m => m.player2_id),
     ...activeMatches.flatMap(m => [m.player3_id, m.player4_id].filter(Boolean) as number[]),
   ]);
-  // All player IDs already staged on any table
   const stagedIds = new Set(Object.values(assignments).flatMap(s => [...s.A, ...s.B]));
 
+  // Players who can be added to queue (not queued, not active)
   const availableForQueue = players.filter(p => !queuedIds.has(p.id) && !activeIds.has(p.id));
-  const availableForTable = players.filter(p => !activeIds.has(p.id) && !stagedIds.has(p.id));
 
   // ── Queue actions ──────────────────────────────────────────────
 
@@ -237,79 +302,76 @@ export default function QueuePage() {
   // ── Queue drag-to-reorder ──────────────────────────────────────
 
   function handleQueueDragStart(e: React.DragEvent, playerId: number) {
-    setDraggedId(playerId);
-    setDragSource('queue');
+    sounds.pickup();
+    setDraggedPlayerId(playerId);
+    setDraggedTableId(null);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('type', 'player');
     e.dataTransfer.setData('playerId', String(playerId));
   }
 
-  function handleQueueDragOver(e: React.DragEvent, targetId: number) {
+  function handleQueueItemDragOver(e: React.DragEvent, targetId: number) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e.dataTransfer.types.includes('type')) {
+      e.dataTransfer.dropEffect = 'move';
+    }
     setDragOverQueueId(targetId);
   }
 
-  function handleQueueDrop(e: React.DragEvent, targetId: number) {
+  function handleQueueItemDrop(e: React.DragEvent, targetId: number) {
     e.preventDefault();
-    if (draggedId === null || draggedId === targetId) {
-      setDragOverQueueId(null);
-      return;
+    const type = e.dataTransfer.getData('type');
+    if (type !== 'player' || draggedPlayerId === null || draggedPlayerId === targetId) {
+      setDragOverQueueId(null); return;
     }
+    sounds.tick();
     const newOrder = [...queue];
-    const fromIdx = newOrder.findIndex(q => q.player_id === draggedId);
+    const fromIdx = newOrder.findIndex(q => q.player_id === draggedPlayerId);
     const toIdx   = newOrder.findIndex(q => q.player_id === targetId);
     if (fromIdx === -1 || toIdx === -1) return;
     const [moved] = newOrder.splice(fromIdx, 1);
     newOrder.splice(toIdx, 0, moved);
     api.reorderQueue(newOrder.map(q => q.player_id)).catch(() => {});
     setDragOverQueueId(null);
-    setDraggedId(null);
+    setDraggedPlayerId(null);
   }
 
-  // ── Table drag-drop ────────────────────────────────────────────
+  // ── Table side drop ────────────────────────────────────────────
 
-  function handleAvailableDragStart(e: React.DragEvent, playerId: number) {
-    setDraggedId(playerId);
-    setDragSource('available');
-    e.dataTransfer.effectAllowed = 'copy';
-    e.dataTransfer.setData('playerId', String(playerId));
-  }
-
-  function handleTableDragOver(e: React.DragEvent, tableId: number, side: 'A' | 'B') {
+  function handleTableSideDragOver(e: React.DragEvent, tableId: number, side: 'A' | 'B') {
     e.preventDefault();
     e.stopPropagation();
+    const type = e.dataTransfer.getData('type') || (draggedPlayerId !== null ? 'player' : '');
+    if (type !== 'player' && draggedPlayerId === null) return;
     const curr = assignments[tableId] ?? { A: [], B: [] };
-    if (curr[side].length >= 2) return; // max 2 per side
-    e.dataTransfer.dropEffect = dragSource === 'queue' ? 'move' : 'copy';
+    if (curr[side].length >= 2) return;
+    e.dataTransfer.dropEffect = 'move';
     setDragOverTableSide({ id: tableId, side });
   }
 
-  function handleTableDragLeave(e: React.DragEvent) {
-    // Only clear if leaving the drop zone container (not entering a child)
+  function handleTableSideDragLeave(e: React.DragEvent) {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDragOverTableSide(null);
     }
   }
 
-  function handleTableDrop(e: React.DragEvent, tableId: number, side: 'A' | 'B') {
+  function handleTableSideDrop(e: React.DragEvent, tableId: number, side: 'A' | 'B') {
     e.preventDefault();
     e.stopPropagation();
-    const pid = draggedId;
+    const pid = draggedPlayerId;
     if (!pid) return;
 
     const curr = assignments[tableId] ?? { A: [], B: [] };
     const other = side === 'A' ? 'B' : 'A';
+    if (curr[side].includes(pid) || curr[other].includes(pid) || curr[side].length >= 2) return;
 
-    // Don't allow same player on both sides or >2 per side
-    if (curr[side].includes(pid) || curr[other].includes(pid)) return;
-    if (curr[side].length >= 2) return;
-
+    sounds.drop();
     setAssignments(prev => ({
       ...prev,
       [tableId]: { ...curr, [side]: [...curr[side], pid] },
     }));
     setDragOverTableSide(null);
-    setDraggedId(null);
+    setDraggedPlayerId(null);
   }
 
   function removeFromTable(tableId: number, pid: number, side: 'A' | 'B') {
@@ -341,10 +403,51 @@ export default function QueuePage() {
     }
   }
 
+  // ── Table card drag-to-reorder ─────────────────────────────────
+
+  function handleTableCardDragStart(e: React.DragEvent, tableId: number) {
+    setDraggedTableId(tableId);
+    setDraggedPlayerId(null);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('type', 'table');
+    e.dataTransfer.setData('tableId', String(tableId));
+  }
+
+  function handleTableCardDragOver(e: React.DragEvent, tableId: number) {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('type') || (draggedTableId !== null ? 'table' : '');
+    if (type !== 'table' && draggedTableId === null) return;
+    if (draggedTableId === tableId) return;
+    setDragOverTableReorderId(tableId);
+  }
+
+  function handleTableCardDrop(e: React.DragEvent, targetTableId: number) {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('type') || (draggedTableId !== null ? 'table' : '');
+    if (type !== 'table' || !draggedTableId || draggedTableId === targetTableId) {
+      setDragOverTableReorderId(null); return;
+    }
+    sounds.tick();
+    setLocalTableIds(prev => {
+      const next = [...prev];
+      const fromIdx = next.indexOf(draggedTableId!);
+      const toIdx   = next.indexOf(targetTableId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      api.reorderTables(next).catch(() => {});
+      return next;
+    });
+    setDragOverTableReorderId(null);
+    setDraggedTableId(null);
+  }
+
   function handleDragEnd() {
-    setDraggedId(null);
+    setDraggedPlayerId(null);
+    setDraggedTableId(null);
     setDragOverQueueId(null);
     setDragOverTableSide(null);
+    setDragOverTableReorderId(null);
   }
 
   // ── Render ─────────────────────────────────────────────────────
@@ -354,7 +457,7 @@ export default function QueuePage() {
       <div>
         <h1 className="text-2xl font-bold">Match Queue & Tables</h1>
         <p className="text-secondary text-sm mt-1">
-          Drag players from the queue onto a table to assign sides, then press Start Match.
+          Drag players onto table sides to assign them, then press Start Match. Drag ⠿ to reorder.
         </p>
       </div>
 
@@ -362,29 +465,6 @@ export default function QueuePage() {
         <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up">
           <span>⚠</span> {error}
           <button onClick={() => setError('')} className="ml-auto opacity-60 hover:opacity-100">×</button>
-        </div>
-      )}
-
-      {/* Available players pool (not in queue and not playing) */}
-      {availableForQueue.length > 0 && (
-        <div className="card !p-4">
-          <p className="text-xs font-medium text-secondary uppercase tracking-wider mb-3">
-            Available Players — drag to queue or table
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {availableForQueue.map(p => (
-              <div
-                key={p.id}
-                draggable
-                onDragStart={e => handleAvailableDragStart(e, p.id)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-input border border-theme rounded-full cursor-grab active:cursor-grabbing hover:border-hover transition-all duration-150 animate-bubble-pop select-none"
-              >
-                <Avatar name={p.name} size="sm" />
-                <span className="text-sm font-medium">{p.name}</span>
-                <span className="text-xs text-muted">{p.elo}</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -406,34 +486,44 @@ export default function QueuePage() {
             ) : (
               <ol className="space-y-1.5">
                 {queue.map((entry, i) => {
-                  const isDragging = draggedId === entry.player_id;
+                  const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
+                  const isStaged = stagedIds.has(entry.player_id);
+                  const stagedOnTable = isStaged
+                    ? tables.find(t => {
+                        const s = assignments[t.id];
+                        return s && ([...s.A, ...s.B].includes(entry.player_id));
+                      })
+                    : null;
+
                   return (
                     <li
                       key={entry.id}
                       draggable
                       onDragStart={e => handleQueueDragStart(e, entry.player_id)}
-                      onDragOver={e => handleQueueDragOver(e, entry.player_id)}
+                      onDragOver={e => handleQueueItemDragOver(e, entry.player_id)}
                       onDragLeave={() => setDragOverQueueId(null)}
-                      onDrop={e => handleQueueDrop(e, entry.player_id)}
+                      onDrop={e => handleQueueItemDrop(e, entry.player_id)}
                       className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
-                      } ${isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : i === 0 ? 'border-green-500/30 bg-green-500/5' : 'border-theme bg-input/40 hover:border-hover'}`}
+                      } ${isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
+                        isStaged ? 'opacity-70' : ''
+                      }`}
                     >
-                      {/* Drag handle */}
                       <span className="text-muted text-base leading-none select-none cursor-grab">⠿</span>
-
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        i === 0 ? 'bg-green-500 text-black' : 'bg-card border border-theme text-secondary'
-                      }`}>{i + 1}</span>
-
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-card border border-theme text-secondary">
+                        {i + 1}
+                      </span>
                       <Avatar name={entry.name} size="sm" />
-
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{entry.name}</p>
-                        <p className="text-xs text-muted">ELO {entry.elo}</p>
+                        <p className="text-xs text-muted">
+                          ELO {entry.elo}
+                          {stagedOnTable && (
+                            <span className="ml-2 text-blue-400">📍 {stagedOnTable.name}</span>
+                          )}
+                        </p>
                       </div>
-
                       <button
                         onClick={() => leaveQueue(entry.player_id)}
                         className="text-faint hover:text-red-400 transition-colors text-xl leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10 flex-shrink-0"
@@ -471,10 +561,10 @@ export default function QueuePage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Tables</h2>
-            <p className="text-xs text-muted">Drag players from queue or pool onto a side</p>
+            <p className="text-xs text-muted">Drag ⠿ to reorder • Drag players onto sides</p>
           </div>
 
-          {tables.length === 0 ? (
+          {orderedTables.length === 0 ? (
             <div className="card text-center py-10 text-muted">
               <p className="text-4xl mb-2">🏓</p>
               <p className="text-sm">No tables configured.</p>
@@ -482,22 +572,30 @@ export default function QueuePage() {
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
-              {tables.map(table => {
+              {orderedTables.map(table => {
                 const sides = assignments[table.id] ?? { A: [], B: [] };
-                const dragOver = dragOverTableSide?.id === table.id ? dragOverTableSide.side : null;
+                const dragOverSide = dragOverTableSide?.id === table.id ? dragOverTableSide.side : null;
+                const isDragOver = dragOverTableReorderId === table.id;
+                const isDragging = draggedTableId === table.id;
+
                 return (
                   <TableCard
                     key={table.id}
                     table={table}
                     sides={sides}
-                    dragOverSide={dragOver}
-                    onDragOver={(e, side) => handleTableDragOver(e, table.id, side)}
-                    onDragLeave={handleTableDragLeave}
-                    onDrop={(e, side) => handleTableDrop(e, table.id, side)}
+                    dragOverSide={dragOverSide}
+                    isDragOver={isDragOver}
+                    isDragging={isDragging}
+                    onDragOver={(e, side) => handleTableSideDragOver(e, table.id, side)}
+                    onDragLeave={handleTableSideDragLeave}
+                    onDrop={(e, side) => handleTableSideDrop(e, table.id, side)}
                     onRemovePlayer={(pid, side) => removeFromTable(table.id, pid, side)}
                     onStartMatch={() => startMatch(table.id)}
                     onClear={() => clearTable(table.id)}
-                    allPlayers={availableForTable}
+                    onCardDragStart={e => handleTableCardDragStart(e, table.id)}
+                    onCardDragOver={e => handleTableCardDragOver(e, table.id)}
+                    onCardDrop={e => handleTableCardDrop(e, table.id)}
+                    allPlayers={players}
                     starting={starting === table.id}
                   />
                 );

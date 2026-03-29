@@ -29,6 +29,8 @@ export const api = {
   getTables: () => request('/tables'),
   createTable: (name: string) => request('/tables', { method: 'POST', body: JSON.stringify({ name }) }),
   deleteTable: (id: number) => request(`/tables/${id}`, { method: 'DELETE' }),
+  reorderTables: (tableIds: number[]) =>
+    request('/tables/reorder', { method: 'PATCH', body: JSON.stringify({ tableIds }) }),
 
   // Matches
   getMatches: (status?: string) => request(`/matches${status ? `?status=${status}` : ''}`),
