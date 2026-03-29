@@ -9,10 +9,7 @@ function parseUTC(s: string) {
 }
 
 function PingPongAnimation() {
-  // Duration of one full rally cycle
-  const D = '2.2s';
-  // Ball travels left→peak→right→peak→left
-  // Arc peaks are higher and asymmetric for realism
+  const DUR = '2.2s';
   const ballX   = '18;75;158;75;18';
   const ballY   = '34;6;34;6;34';
   const times   = '0;0.25;0.5;0.75;1';
@@ -22,142 +19,139 @@ function PingPongAnimation() {
     <div className="flex justify-center items-center py-1">
       <svg width="176" height="56" viewBox="0 0 176 56" fill="none">
         <defs>
-          {/* Table felt gradient */}
-          <linearGradient id="tableGrad" x1="0" y1="0" x2="0" y2="1">
+          {/* CSS keyframes inside defs — fully supported, avoids SMIL keyTimes bugs */}
+          <style>{`
+            @keyframes ppSwingL {
+              0%   { transform: rotate(-7deg); }
+              4%   { transform: rotate(13deg); }
+              16%  { transform: rotate(-7deg); }
+              100% { transform: rotate(-7deg); }
+            }
+            @keyframes ppSwingR {
+              0%   { transform: rotate(7deg); }
+              50%  { transform: rotate(7deg); }
+              54%  { transform: rotate(-13deg); }
+              66%  { transform: rotate(7deg); }
+              100% { transform: rotate(7deg); }
+            }
+            .pp-paddle-l {
+              transform-box: fill-box;
+              transform-origin: 50% 88%;
+              animation: ppSwingL ${DUR} ease-in-out infinite;
+            }
+            .pp-paddle-r {
+              transform-box: fill-box;
+              transform-origin: 50% 88%;
+              animation: ppSwingR ${DUR} ease-in-out infinite;
+            }
+          `}</style>
+
+          <linearGradient id="ppTableGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#166534"/>
             <stop offset="100%" stopColor="#14532d"/>
           </linearGradient>
-          {/* Table edge shadow */}
-          <linearGradient id="edgeGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="ppEdgeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#15803d"/>
             <stop offset="100%" stopColor="#052e16"/>
           </linearGradient>
-          {/* Ball gradient for 3-D look */}
-          <radialGradient id="ballGrad" cx="35%" cy="30%" r="65%">
+          <radialGradient id="ppBallGrad" cx="35%" cy="30%" r="65%">
             <stop offset="0%" stopColor="#ffffff"/>
             <stop offset="60%" stopColor="#f0f0e8"/>
             <stop offset="100%" stopColor="#d4d4c8"/>
           </radialGradient>
-          {/* Paddle rubber */}
-          <radialGradient id="paddleGrad" cx="40%" cy="35%" r="70%">
+          <radialGradient id="ppPaddleGrad" cx="40%" cy="35%" r="70%">
             <stop offset="0%" stopColor="#fb923c"/>
             <stop offset="100%" stopColor="#c2410c"/>
           </radialGradient>
         </defs>
 
-        {/* ── Table surface ── */}
-        {/* Side panels (3-D depth) */}
-        <rect x="14" y="38" width="148" height="5" rx="1" fill="url(#edgeGrad)" opacity="0.9"/>
-        {/* Main felt */}
-        <rect x="14" y="28" width="148" height="12" rx="2" fill="url(#tableGrad)"/>
-        {/* White boundary lines */}
+        {/* ── Table ── */}
+        <rect x="14" y="38" width="148" height="5" rx="1" fill="url(#ppEdgeGrad)" opacity="0.9"/>
+        <rect x="14" y="28" width="148" height="12" rx="2" fill="url(#ppTableGrad)"/>
         <rect x="14" y="28" width="148" height="1.5" rx="0.5" fill="white" opacity="0.25"/>
-        <rect x="14" y="37.5" width="148" height="1" rx="0.5" fill="white" opacity="0.12"/>
         <line x1="16" y1="29.5" x2="16" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
         <line x1="160" y1="29.5" x2="160" y2="37.5" stroke="white" strokeWidth="1" opacity="0.15"/>
-        {/* Center line */}
         <line x1="88" y1="29.5" x2="88" y2="37.5" stroke="white" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.3"/>
-        {/* Net post left */}
-        <rect x="85.5" y="21" width="1.5" height="8" rx="0.5" fill="#94a3b8" opacity="0.7"/>
-        {/* Net post right */}
-        <rect x="89" y="21" width="1.5" height="8" rx="0.5" fill="#94a3b8" opacity="0.7"/>
-        {/* Net fabric */}
-        <rect x="86" y="21" width="4" height="7" fill="none" stroke="white" strokeWidth="0.5" opacity="0.4"
-          style={{ strokeDasharray: '1.2 1.8' }}/>
-        <line x1="86" y1="21" x2="90" y2="21" stroke="white" strokeWidth="1" opacity="0.6"/>
-        <line x1="86" y1="28" x2="90" y2="28" stroke="white" strokeWidth="0.8" opacity="0.4"/>
+        {/* Net */}
+        <rect x="85.5" y="20" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
+        <rect x="89" y="20" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
+        <line x1="86" y1="20" x2="90" y2="20" stroke="white" strokeWidth="1.2" opacity="0.7"/>
+        <rect x="86" y="20" width="4" height="8" fill="none" stroke="white" strokeWidth="0.5"
+          strokeDasharray="1.5 1.5" opacity="0.35"/>
 
-        {/* ── Left player — handle + paddle ── */}
-        {/* Handle */}
-        <rect x="3" y="34" width="5" height="11" rx="2.5" fill="#78350f"/>
-        {/* Paddle blade (wood layer) */}
-        <ellipse cx="10" cy="26" rx="7" ry="10" fill="#d97706" opacity="0.9">
-          <animateTransform attributeName="transform" type="rotate"
-            values="-8 10 26;5 10 26;-8 10 26"
-            keyTimes="0;0.05;0.12"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </ellipse>
-        {/* Paddle rubber (red face) */}
-        <ellipse cx="10" cy="26" rx="6" ry="9" fill="url(#paddleGrad)">
-          <animateTransform attributeName="transform" type="rotate"
-            values="-8 10 26;5 10 26;-8 10 26"
-            keyTimes="0;0.05;0.12"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </ellipse>
-        {/* Paddle sheen */}
-        <ellipse cx="8" cy="21" rx="2.5" ry="3.5" fill="white" opacity="0.18">
-          <animateTransform attributeName="transform" type="rotate"
-            values="-8 10 26;5 10 26;-8 10 26"
-            keyTimes="0;0.05;0.12"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+        {/* ── Left paddle (CSS-animated group) ── */}
+        <g className="pp-paddle-l">
+          <rect x="3"  y="33" width="6" height="13" rx="3" fill="#78350f"/>
+          <ellipse cx="6" cy="24" rx="8"  ry="11" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="6" cy="24" rx="7"  ry="10" fill="url(#ppPaddleGrad)"/>
+          <ellipse cx="4" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Right paddle (CSS-animated group) ── */}
+        <g className="pp-paddle-r">
+          <rect x="167" y="33" width="6" height="13" rx="3" fill="#78350f"/>
+          <ellipse cx="170" cy="24" rx="8"  ry="11" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="170" cy="24" rx="7"  ry="10" fill="url(#ppPaddleGrad)"/>
+          <ellipse cx="168" cy="19" rx="2.5" ry="3.5" fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Ball shadow ── */}
+        <ellipse cy="37.5" ry="1.8" fill="black" opacity="0.25">
+          <animate attributeName="cx"
+            values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
+          <animate attributeName="rx"
+            values="5;1.5;5;1.5;5" keyTimes={times} dur={DUR} repeatCount="indefinite"/>
+          <animate attributeName="opacity"
+            values="0.28;0.06;0.28;0.06;0.28" keyTimes={times} dur={DUR} repeatCount="indefinite"/>
         </ellipse>
 
-        {/* ── Right player — handle + paddle ── */}
-        <rect x="168" y="34" width="5" height="11" rx="2.5" fill="#78350f"/>
-        <ellipse cx="166" cy="26" rx="7" ry="10" fill="#d97706" opacity="0.9">
-          <animateTransform attributeName="transform" type="rotate"
-            values="8 166 26;-5 166 26;8 166 26"
-            keyTimes="0.5;0.55;0.62"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </ellipse>
-        <ellipse cx="166" cy="26" rx="6" ry="9" fill="url(#paddleGrad)">
-          <animateTransform attributeName="transform" type="rotate"
-            values="8 166 26;-5 166 26;8 166 26"
-            keyTimes="0.5;0.55;0.62"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </ellipse>
-        <ellipse cx="164" cy="21" rx="2.5" ry="3.5" fill="white" opacity="0.18">
-          <animateTransform attributeName="transform" type="rotate"
-            values="8 166 26;-5 166 26;8 166 26"
-            keyTimes="0.5;0.55;0.62"
-            dur={D} repeatCount="indefinite"
-            calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </ellipse>
-
-        {/* ── Ball shadow on table ── */}
-        <ellipse cy="37" ry="1.8" fill="black" opacity="0.25">
-          <animate attributeName="cx" values={ballX} keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
-          {/* Shadow squishes as ball gets closer to table */}
-          <animate attributeName="rx" values="5;2;5;2;5" keyTimes={times} dur={D} repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.25;0.07;0.25;0.07;0.25" keyTimes={times} dur={D} repeatCount="indefinite"/>
-        </ellipse>
-
-        {/* ── Ball (main) ── */}
-        <circle r="6" fill="url(#ballGrad)">
-          <animate attributeName="cx" values={ballX} keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
-          <animate attributeName="cy" values={ballY} keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+        {/* ── Ball ── */}
+        <circle r="6" fill="url(#ppBallGrad)">
+          <animate attributeName="cx"
+            values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
+          <animate attributeName="cy"
+            values={ballY} keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
         </circle>
 
-        {/* ── Spin seam on the ball ── */}
-        <ellipse rx="6" ry="2.2" fill="none" stroke="#c8c8be" strokeWidth="0.8" opacity="0.5">
-          <animate attributeName="cx" values={ballX} keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
-          <animate attributeName="cy" values={ballY} keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+        {/* ── Spin seam (SMIL rotate is fine here — no keyTimes 0→1 issue since values are cumulative) ── */}
+        <ellipse rx="6" ry="2" fill="none" stroke="#c8c8be" strokeWidth="0.9" opacity="0.45">
+          <animate attributeName="cx"
+            values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
+          <animate attributeName="cy"
+            values={ballY} keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
           <animateTransform attributeName="transform" type="rotate"
-            values="0;360;720;1080;1440"
-            keyTimes={times} dur={D} repeatCount="indefinite"/>
+            from="0" to="360" dur={DUR} repeatCount="indefinite" additive="sum"/>
         </ellipse>
 
         {/* ── Ball specular highlight ── */}
-        <circle r="2" fill="white" opacity="0.7">
-          <animate attributeName="cx" values="21;78;161;78;21" keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
-          <animate attributeName="cy" values="30;2;30;2;30" keyTimes={times} dur={D} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+        <circle r="2" fill="white" opacity="0.65">
+          <animate attributeName="cx"
+            values="21;78;161;78;21" keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
+          <animate attributeName="cy"
+            values="28;2;28;2;28" keyTimes={times} dur={DUR} repeatCount="indefinite"
+            calcMode="spline" keySplines={splines}/>
         </circle>
 
-        {/* ── Impact flash (left) ── */}
-        <circle cx="18" cy="28" r="4" fill="#fed7aa" opacity="0">
-          <animate attributeName="opacity" values="0;0.6;0;0;0" keyTimes="0;0.04;0.1;0.5;1" dur={D} repeatCount="indefinite"/>
-          <animate attributeName="r" values="2;6;2;2;2" keyTimes="0;0.04;0.1;0.5;1" dur={D} repeatCount="indefinite"/>
+        {/* ── Impact flash left ── */}
+        <circle cx="18" cy="27" r="2" fill="#fed7aa" opacity="0">
+          <animate attributeName="opacity"
+            values="0;0.7;0;0;0" keyTimes="0;0.04;0.10;0.5;1" dur={DUR} repeatCount="indefinite"/>
+          <animate attributeName="r"
+            values="2;7;2;2;2"  keyTimes="0;0.04;0.10;0.5;1" dur={DUR} repeatCount="indefinite"/>
         </circle>
 
-        {/* ── Impact flash (right) ── */}
-        <circle cx="158" cy="28" r="4" fill="#fed7aa" opacity="0">
-          <animate attributeName="opacity" values="0;0;0;0.6;0" keyTimes="0;0.46;0.5;0.54;0.6" dur={D} repeatCount="indefinite"/>
-          <animate attributeName="r" values="2;2;2;6;2" keyTimes="0;0.46;0.5;0.54;0.6" dur={D} repeatCount="indefinite"/>
+        {/* ── Impact flash right ── */}
+        <circle cx="158" cy="27" r="2" fill="#fed7aa" opacity="0">
+          <animate attributeName="opacity"
+            values="0;0;0;0.7;0" keyTimes="0;0.46;0.50;0.54;0.62" dur={DUR} repeatCount="indefinite"/>
+          <animate attributeName="r"
+            values="2;2;2;7;2"  keyTimes="0;0.46;0.50;0.54;0.62" dur={DUR} repeatCount="indefinite"/>
         </circle>
       </svg>
     </div>
