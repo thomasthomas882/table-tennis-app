@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { sounds } from '../utils/sounds';
 import { useApp } from '../App';
 import { api } from '../api';
 import { Match } from '../types';
@@ -207,6 +208,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
 
   async function saveScore() {
     setSaving(true);
+    sounds.drop();
     try { await api.updateScore(match.id, p1Score, p2Score); }
     catch (e) { console.error(e); }
     finally { setSaving(false); }
@@ -214,14 +216,16 @@ function ActiveMatchCard({ match }: { match: Match }) {
 
   async function completeMatch(winnerId: number) {
     setCompleting(true);
+    sounds.startMatch();
     try { await api.completeMatch(match.id, winnerId); }
     catch (e) { console.error(e); }
     finally { setCompleting(false); }
   }
 
   async function handleVoid() {
-    if (!confirmVoid) { setConfirmVoid(true); return; }
+    if (!confirmVoid) { sounds.void(); setConfirmVoid(true); return; }
     setVoiding(true);
+    sounds.void();
     try { await api.voidMatch(match.id); }
     catch (e) { console.error(e); }
     finally { setVoiding(false); setConfirmVoid(false); }
@@ -261,9 +265,9 @@ function ActiveMatchCard({ match }: { match: Match }) {
           <PlayerTeamDisplay names={teamANames} elos={teamAElos} leading={p1Leading} />
           <ScoreDisplay value={p1Score} flash={p1Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
-            <button onClick={() => setP1Score(s => Math.max(0, s - 1))}
+            <button onClick={() => { sounds.scoreDown(); setP1Score(s => Math.max(0, s - 1)); }}
               className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
-            <button onClick={() => setP1Score(s => s + 1)}
+            <button onClick={() => { sounds.scoreUp(); setP1Score(s => s + 1); }}
               className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
@@ -278,9 +282,9 @@ function ActiveMatchCard({ match }: { match: Match }) {
           <PlayerTeamDisplay names={teamBNames} elos={teamBElos} leading={p2Leading} />
           <ScoreDisplay value={p2Score} flash={p2Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
-            <button onClick={() => setP2Score(s => Math.max(0, s - 1))}
+            <button onClick={() => { sounds.scoreDown(); setP2Score(s => Math.max(0, s - 1)); }}
               className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
-            <button onClick={() => setP2Score(s => s + 1)}
+            <button onClick={() => { sounds.scoreUp(); setP2Score(s => s + 1); }}
               className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
@@ -308,7 +312,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
               className="bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 text-red-300 text-xs px-2 py-1.5 rounded-lg transition-all">
               {voiding ? '…' : 'Void'}
             </button>
-            <button onClick={() => setConfirmVoid(false)}
+            <button onClick={() => { sounds.cancel(); setConfirmVoid(false); }}
               className="text-muted hover:text-primary text-xs px-2 py-1.5 rounded-lg transition-all">
               Cancel
             </button>

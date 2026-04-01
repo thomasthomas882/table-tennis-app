@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
+import { sounds } from '../utils/sounds';
 
 export default function PlayersPage() {
   const { players, queue, activeMatches, hideElo } = useApp();
@@ -21,6 +22,7 @@ export default function PlayersPage() {
     setError('');
     try {
       await api.createPlayer(newName.trim());
+      sounds.success();
       setNewName('');
     } catch (e: any) {
       setError(e.message);
@@ -31,6 +33,7 @@ export default function PlayersPage() {
 
   async function removePlayer(id: number, name: string) {
     if (!confirm(`Remove ${name} from the club? This cannot be undone.`)) return;
+    sounds.remove();
     await api.deletePlayer(id).catch((e) => setError(e.message));
   }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
+import { sounds } from '../utils/sounds';
 
 const GUIDE_STEPS = [
   {
@@ -45,7 +46,7 @@ function GuideModal({ onClose }: { onClose: () => void }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-      onClick={onClose}
+      onClick={() => { sounds.cancel(); onClose(); }}
     >
       <div
         className="card w-full max-w-lg max-h-[85vh] overflow-y-auto animate-slide-up"
@@ -57,7 +58,7 @@ function GuideModal({ onClose }: { onClose: () => void }) {
             <p className="text-secondary text-xs mt-0.5">A quick step-by-step guide</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => { sounds.cancel(); onClose(); }}
             className="text-muted hover:text-primary transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-card"
           >
             ×
@@ -119,6 +120,7 @@ export default function SettingsPage() {
     setError('');
     try {
       await api.createTable(newTable.trim());
+      sounds.success();
       setNewTable('');
     } catch (e: any) {
       setError(e.message);
@@ -129,6 +131,7 @@ export default function SettingsPage() {
 
   async function removeTable(id: number) {
     try {
+      sounds.remove();
       await api.deleteTable(id);
     } catch (e: any) {
       setError(e.message);
@@ -160,7 +163,7 @@ export default function SettingsPage() {
       {error && (
         <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up">
           <span>⚠</span> {error}
-          <button onClick={() => setError('')} className="ml-auto opacity-60 hover:opacity-100">×</button>
+          <button onClick={() => { sounds.cancel(); setError(''); }} className="ml-auto opacity-60 hover:opacity-100">×</button>
         </div>
       )}
 
@@ -172,7 +175,7 @@ export default function SettingsPage() {
           <p className="text-secondary text-sm mb-4">Choose your preferred theme.</p>
           <div className="flex gap-3">
             <button
-              onClick={() => setTheme('dark')}
+              onClick={() => { sounds.click(); setTheme('dark'); }}
               className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
                 theme === 'dark'
                   ? 'border-green-500 bg-green-500/10'
@@ -186,7 +189,7 @@ export default function SettingsPage() {
               </div>
             </button>
             <button
-              onClick={() => setTheme('light')}
+              onClick={() => { sounds.click(); setTheme('light'); }}
               className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
                 theme === 'light'
                   ? 'border-green-500 bg-green-500/10'
@@ -209,7 +212,7 @@ export default function SettingsPage() {
             New to PingTrack? The guide walks you through every step — from adding players to completing matches.
           </p>
           <button
-            onClick={() => setShowGuide(true)}
+            onClick={() => { sounds.pickup(); setShowGuide(true); }}
             className="btn-primary flex items-center justify-center gap-2 w-full"
           >
             <span>📖</span> Open Guide
@@ -231,7 +234,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={() => { sounds.tick(); setSoundEnabled(!soundEnabled); }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
                 soundEnabled ? 'bg-green-500' : 'bg-card border border-theme'
               }`}
@@ -252,7 +255,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <button
-              onClick={() => setHideElo(!hideElo)}
+              onClick={() => { sounds.tick(); setHideElo(!hideElo); }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
                 hideElo ? 'bg-green-500' : 'bg-card border border-theme'
               }`}
@@ -333,13 +336,13 @@ export default function SettingsPage() {
             {confirmResetElo ? (
               <div className="flex items-center gap-2 animate-slide-up">
                 <span className="text-red-400 text-xs font-medium">Sure?</span>
-                <button onClick={handleResetElo} disabled={resettingElo} className="btn-danger text-xs py-1 px-3">
+                <button onClick={() => { sounds.void(); handleResetElo(); }} disabled={resettingElo} className="btn-danger text-xs py-1 px-3">
                   {resettingElo ? '…' : 'Yes'}
                 </button>
-                <button onClick={() => setConfirmResetElo(false)} className="btn-secondary text-xs py-1 px-3">No</button>
+                <button onClick={() => { sounds.cancel(); setConfirmResetElo(false); }} className="btn-secondary text-xs py-1 px-3">No</button>
               </div>
             ) : (
-              <button onClick={handleResetElo} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
+              <button onClick={() => { sounds.void(); handleResetElo(); }} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
                 Reset ELO
               </button>
             )}
@@ -354,13 +357,13 @@ export default function SettingsPage() {
             {confirmReset ? (
               <div className="flex items-center gap-2 animate-slide-up">
                 <span className="text-red-400 text-xs font-medium">Sure?</span>
-                <button onClick={handleReset} disabled={resetting} className="btn-danger text-xs py-1 px-3">
+                <button onClick={() => { sounds.void(); handleReset(); }} disabled={resetting} className="btn-danger text-xs py-1 px-3">
                   {resetting ? '…' : 'Yes'}
                 </button>
-                <button onClick={() => setConfirmReset(false)} className="btn-secondary text-xs py-1 px-3">No</button>
+                <button onClick={() => { sounds.cancel(); setConfirmReset(false); }} className="btn-secondary text-xs py-1 px-3">No</button>
               </div>
             ) : (
-              <button onClick={handleReset} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
+              <button onClick={() => { sounds.void(); handleReset(); }} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
                 Reset All
               </button>
             )}

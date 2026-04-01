@@ -91,4 +91,30 @@ export const sounds = {
   hover() {
     tone(1200, 0.03, 'sine', 0.025);
   },
+
+  /** Generic button click for nav tabs, toggles, settings */
+  click() {
+    tone(480, 0.07, 'sine', 0.05);
+  },
+
+  /** Score increment — bright ping */
+  scoreUp() {
+    tone(880, 0.09, 'sine', 0.07);
+  },
+
+  /** Score decrement — soft thud downward */
+  scoreDown() {
+    tone(440, 0.09, 'sine', 0.06, 0, 300);
+  },
+
+  /** Dismissing an error or cancel */
+  cancel() {
+    tone(360, 0.1, 'sine', 0.045, 0, 280);
+  },
+
+  /** Pleasant two-note confirm for successful adds */
+  success() {
+    tone(520, 0.1,  'sine', 0.07);
+    tone(780, 0.14, 'sine', 0.06, 0.09);
+  },
 };

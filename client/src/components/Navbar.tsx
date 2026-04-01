@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useApp } from '../App';
 import { useEffect, useState } from 'react';
+import { sounds } from '../utils/sounds';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: '⊞' },
@@ -52,6 +53,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
               key={to}
               to={to}
               end={to === '/'}
+              onClick={() => sounds.click()}
               className={({ isActive }) =>
                 `relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
