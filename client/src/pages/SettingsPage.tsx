@@ -3,91 +3,217 @@ import { useApp } from '../App';
 import { api } from '../api';
 import { sounds } from '../utils/sounds';
 
-const GUIDE_STEPS = [
+// ─── App Guide ───────────────────────────────────────────────────────────────
+
+const APP_GUIDE_STEPS = [
+  { icon: '👤', title: 'Add Players', desc: 'Go to the Players tab and add every club member by name. Each player starts at 1000 ELO.' },
+  { icon: '🏓', title: 'Set Up Tables', desc: 'In Settings → Tables, add the tables at your venue (e.g. "Table 1", "Main Table").' },
+  { icon: '⏳', title: 'Build the Queue', desc: 'Go to the Queue tab. Search for players and click + to add them to the waiting list. Drag rows to reorder.' },
+  { icon: '▶', title: 'Start a Match', desc: 'Drag players from the queue onto a table card — left side and right side. Hit "Start Match". Supports singles (1v1) and doubles (2v2).' },
+  { icon: '✓', title: 'Complete a Match', desc: 'In the Matches tab, click "Complete" on an active match. Enter the score and pick the winner — ELO updates automatically.' },
+  { icon: '🏆', title: 'Check the Leaderboard', desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, and win rate are all tracked.' },
+  { icon: '⊞', title: 'Dashboard Overview', desc: 'The Dashboard shows active matches with live timers, the current queue, and recent results at a glance.' },
+];
+
+// ─── ELO Guide ───────────────────────────────────────────────────────────────
+
+const ELO_SECTIONS = [
   {
-    icon: '👤',
-    title: 'Add Players',
-    desc: 'Head to the Players tab and add every club member by name. Each player starts with a 1000 ELO rating.',
+    icon: '📊',
+    title: 'What is ELO?',
+    content: 'ELO is a skill rating system. Every player starts at 1000. When you win, you gain points; when you lose, you lose points. How many points change depends on how evenly matched you were.',
   },
   {
-    icon: '🏓',
-    title: 'Set Up Tables',
-    desc: 'In Settings → Tables, add the tables available at your venue (e.g. "Table 1", "Main Table").',
+    icon: '🎯',
+    title: 'Expected Score',
+    content: 'Before each match, the system calculates how likely each player is to win based on the rating gap. The bigger the gap, the more lopsided the prediction. A 150-point difference means the higher-rated player is expected to win ~91% of the time.',
   },
   {
-    icon: '⏳',
-    title: 'Build the Queue',
-    desc: 'Go to the Queue tab. Search for players and click the + button to add them to the waiting list. Drag rows to reorder.',
+    icon: '⚡',
+    title: 'K-Factor (How Fast Ratings Move)',
+    content: null,
+    tiers: [
+      { label: 'New player (< 15 matches)', k: 40, note: 'Ratings calibrate quickly' },
+      { label: 'Rating below 1500', k: 32, note: 'Standard movement' },
+      { label: 'Rating 1500 – 1800', k: 26, note: 'Slower — more established' },
+      { label: 'Rating above 1800', k: 20, note: 'Slowest — top players are stable' },
+    ],
   },
   {
-    icon: '▶',
-    title: 'Start a Match',
-    desc: 'In the Queue tab, drag players from the waiting list onto a table card — left side and right side. Hit "Start Match" when ready. Supports singles (1v1) and doubles (2v2).',
+    icon: '🔢',
+    title: 'The Formula',
+    content: null,
+    formula: true,
   },
   {
-    icon: '✓',
-    title: 'Complete a Match',
-    desc: 'Open the Matches tab, find the active match, and click "Complete". Enter the final score and confirm — ELO ratings update automatically.',
-  },
-  {
-    icon: '🏆',
-    title: 'Check the Leaderboard',
-    desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, and win rate are all tracked.',
-  },
-  {
-    icon: '⊞',
-    title: 'Dashboard Overview',
-    desc: 'The Dashboard shows you everything at a glance: active matches with a live timer, the current queue, and recent match results.',
+    icon: '💡',
+    title: 'Real Examples',
+    content: null,
+    examples: [
+      { scenario: 'Equal players (1000 vs 1000)', result: 'Winner: +20 pts · Loser: −20 pts', highlight: false },
+      { scenario: 'Underdog wins (900 beats 1200)', result: 'Winner: +35 pts · Loser: −25 pts', highlight: true },
+      { scenario: 'Favourite wins (1200 beats 900)', result: 'Winner: +7 pts · Loser: −9 pts', highlight: false },
+      { scenario: 'Big upset (800 beats 1400)', result: 'Winner: ~+39 pts · Loser: ~−29 pts', highlight: true },
+    ],
   },
 ];
 
-function GuideModal({ onClose }: { onClose: () => void }) {
+// ─── Modals ──────────────────────────────────────────────────────────────────
+
+function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
       onClick={() => { sounds.cancel(); onClose(); }}
     >
       <div
-        className="card w-full max-w-lg max-h-[85vh] overflow-y-auto animate-slide-up"
+        className="card w-full max-w-lg max-h-[88vh] overflow-y-auto animate-slide-up"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-lg font-bold">How to Use PingTrack</h2>
-            <p className="text-secondary text-xs mt-0.5">A quick step-by-step guide</p>
-          </div>
-          <button
-            onClick={() => { sounds.cancel(); onClose(); }}
-            className="text-muted hover:text-primary transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-card"
-          >
-            ×
-          </button>
-        </div>
-        <ol className="space-y-4">
-          {GUIDE_STEPS.map((step, i) => (
-            <li key={i} className="flex gap-3">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-xs font-bold text-green-400">
-                {i + 1}
-              </div>
-              <div className="pt-0.5">
-                <p className="font-semibold text-sm flex items-center gap-1.5">
-                  <span>{step.icon}</span> {step.title}
-                </p>
-                <p className="text-secondary text-xs mt-1 leading-relaxed">{step.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="mt-6 pt-4 border-t border-theme">
-          <p className="text-xs text-muted text-center">
-            PingTrack is in beta — ratings and data persist across sessions.
-          </p>
-        </div>
+        {children}
       </div>
     </div>
   );
 }
+
+function ModalHeader({ title, subtitle, onClose }: { title: string; subtitle: string; onClose: () => void }) {
+  return (
+    <div className="flex items-start justify-between mb-5">
+      <div>
+        <h2 className="text-lg font-bold">{title}</h2>
+        <p className="text-secondary text-xs mt-0.5">{subtitle}</p>
+      </div>
+      <button
+        onClick={() => { sounds.cancel(); onClose(); }}
+        className="text-muted hover:text-primary transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-card flex-shrink-0 ml-3"
+      >×</button>
+    </div>
+  );
+}
+
+function AppGuideModal({ onClose }: { onClose: () => void }) {
+  return (
+    <Modal onClose={onClose}>
+      <ModalHeader title="How to Use PingTrack" subtitle="Step-by-step app guide" onClose={onClose} />
+      <ol className="space-y-4">
+        {APP_GUIDE_STEPS.map((step, i) => (
+          <li key={i} className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-xs font-bold text-green-400">
+              {i + 1}
+            </div>
+            <div className="pt-0.5">
+              <p className="font-semibold text-sm">{step.icon} {step.title}</p>
+              <p className="text-secondary text-xs mt-1 leading-relaxed">{step.desc}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-6 pt-4 border-t border-theme text-center">
+        <p className="text-xs text-muted">PingTrack is in beta — all data persists between sessions.</p>
+      </div>
+    </Modal>
+  );
+}
+
+function EloGuideModal({ onClose }: { onClose: () => void }) {
+  return (
+    <Modal onClose={onClose}>
+      <ModalHeader title="How ELO Works" subtitle="Understanding your rating" onClose={onClose} />
+      <div className="space-y-5">
+        {ELO_SECTIONS.map((section, i) => (
+          <div key={i}>
+            <p className="font-semibold text-sm mb-2 flex items-center gap-2">
+              <span>{section.icon}</span> {section.title}
+            </p>
+
+            {section.content && (
+              <p className="text-secondary text-xs leading-relaxed">{section.content}</p>
+            )}
+
+            {section.tiers && (
+              <div className="space-y-1.5">
+                {section.tiers.map((tier, j) => (
+                  <div key={j} className="flex items-center justify-between px-3 py-2 rounded-lg bg-input border border-theme text-xs">
+                    <span className="text-secondary">{tier.label}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="font-bold text-green-400">K={tier.k}</span>
+                      <span className="text-muted hidden sm:inline">— {tier.note}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {section.formula && (
+              <div className="rounded-lg bg-input border border-theme p-3 space-y-2">
+                <div className="text-xs font-mono text-center text-green-400 py-1">
+                  Expected = 1 ÷ (1 + 10 ^ ((opponent − you) ÷ 150))
+                </div>
+                <div className="border-t border-theme pt-2 text-xs font-mono text-center text-primary">
+                  New Rating = Old Rating + K × (Result − Expected)
+                </div>
+                <p className="text-xs text-muted text-center pt-1">Result = 1 for a win, 0 for a loss</p>
+              </div>
+            )}
+
+            {section.examples && (
+              <div className="space-y-1.5">
+                {section.examples.map((ex, j) => (
+                  <div key={j} className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${
+                    ex.highlight
+                      ? 'bg-yellow-500/5 border-yellow-500/20'
+                      : 'bg-input border-theme'
+                  }`}>
+                    <span className="text-secondary">{ex.scenario}</span>
+                    <span className={`font-medium flex-shrink-0 ml-2 ${ex.highlight ? 'text-yellow-400' : 'text-primary'}`}>
+                      {ex.result}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {i < ELO_SECTIONS.length - 1 && <div className="border-b border-theme/50 mt-4" />}
+          </div>
+        ))}
+      </div>
+      <div className="mt-6 pt-4 border-t border-theme text-center">
+        <p className="text-xs text-muted">PingTrack uses the TTR-style formula (divisor 150) used in German club table tennis.</p>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Toggle Row ───────────────────────────────────────────────────────────────
+
+function ToggleRow({
+  icon, label, sublabel, value, onChange,
+}: { icon: string; label: string; sublabel: string; value: boolean; onChange: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-lg flex-shrink-0">{icon}</span>
+        <div className="min-w-0">
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-xs text-muted truncate">{sublabel}</p>
+        </div>
+      </div>
+      <button
+        onClick={onChange}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+          value ? 'bg-green-500' : 'bg-card border border-theme'
+        }`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+          value ? 'translate-x-6' : 'translate-x-1'
+        }`} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const { theme, setTheme, tables, soundEnabled, setSoundEnabled, hideElo, setHideElo } = useApp();
@@ -98,67 +224,48 @@ export default function SettingsPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmResetElo, setConfirmResetElo] = useState(false);
   const [resettingElo, setResettingElo] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
+  const [showAppGuide, setShowAppGuide] = useState(false);
+  const [showEloGuide, setShowEloGuide] = useState(false);
 
   async function handleResetElo() {
     if (!confirmResetElo) { setConfirmResetElo(true); return; }
     setResettingElo(true);
-    try {
-      await api.resetElo();
-      setConfirmResetElo(false);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setResettingElo(false);
-    }
+    try { await api.resetElo(); setConfirmResetElo(false); }
+    catch (e: any) { setError(e.message); }
+    finally { setResettingElo(false); }
   }
 
   async function addTable(e: React.FormEvent) {
     e.preventDefault();
     if (!newTable.trim()) return;
-    setLoading(true);
-    setError('');
-    try {
-      await api.createTable(newTable.trim());
-      sounds.success();
-      setNewTable('');
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError('');
+    try { await api.createTable(newTable.trim()); sounds.success(); setNewTable(''); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
   }
 
   async function removeTable(id: number) {
-    try {
-      sounds.remove();
-      await api.deleteTable(id);
-    } catch (e: any) {
-      setError(e.message);
-    }
+    try { sounds.remove(); await api.deleteTable(id); }
+    catch (e: any) { setError(e.message); }
   }
 
   async function handleReset() {
-    if (!confirmReset) {
-      setConfirmReset(true);
-      return;
-    }
+    if (!confirmReset) { setConfirmReset(true); return; }
     setResetting(true);
-    try {
-      await api.resetAll();
-      setConfirmReset(false);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setResetting(false);
-    }
+    try { await api.resetAll(); setConfirmReset(false); }
+    catch (e: any) { setError(e.message); }
+    finally { setResetting(false); }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
-      {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+    <div className="space-y-5 animate-fade-in max-w-3xl">
+      {showAppGuide && <AppGuideModal onClose={() => setShowAppGuide(false)} />}
+      {showEloGuide && <EloGuideModal onClose={() => setShowEloGuide(false)} />}
 
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="text-secondary text-sm mt-1">Manage your club, preferences, and account.</p>
+      </div>
 
       {error && (
         <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up">
@@ -167,111 +274,103 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Appearance + Help side by side */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Theme Toggle */}
+      {/* ── Row 1: Appearance + Preferences ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+        {/* Appearance */}
         <div className="card">
-          <h2 className="font-semibold text-lg mb-1">Appearance</h2>
-          <p className="text-secondary text-sm mb-4">Choose your preferred theme.</p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => { sounds.click(); setTheme('dark'); }}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
-                theme === 'dark'
-                  ? 'border-green-500 bg-green-500/10'
-                  : 'border-theme hover:border-hover'
-              }`}
-            >
-              <span className="text-2xl">🌙</span>
-              <div className="text-left">
-                <p className="font-medium">Dark</p>
-                <p className="text-muted text-xs">Easy on the eyes</p>
-              </div>
-            </button>
-            <button
-              onClick={() => { sounds.click(); setTheme('light'); }}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
-                theme === 'light'
-                  ? 'border-green-500 bg-green-500/10'
-                  : 'border-theme hover:border-hover'
-              }`}
-            >
-              <span className="text-2xl">☀️</span>
-              <div className="text-left">
-                <p className="font-medium">Light</p>
-                <p className="text-muted text-xs">Bright and clean</p>
-              </div>
-            </button>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">🎨</span>
+            <h2 className="font-semibold">Appearance</h2>
+          </div>
+          <div className="flex gap-2">
+            {[
+              { value: 'dark' as const, icon: '🌙', label: 'Dark', sub: 'Easy on the eyes' },
+              { value: 'light' as const, icon: '☀️', label: 'Light', sub: 'Bright and clean' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { sounds.click(); setTheme(opt.value); }}
+                className={`flex-1 flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all duration-200 ${
+                  theme === opt.value ? 'border-green-500 bg-green-500/10' : 'border-theme hover:border-hover'
+                }`}
+              >
+                <span className="text-xl">{opt.icon}</span>
+                <div className="text-left">
+                  <p className="font-medium text-sm">{opt.label}</p>
+                  <p className="text-muted text-xs">{opt.sub}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Help */}
-        <div className="card flex flex-col">
-          <h2 className="font-semibold text-lg mb-1">Help</h2>
-          <p className="text-secondary text-sm mb-4 flex-1">
-            New to PingTrack? The guide walks you through every step — from adding players to completing matches.
-          </p>
+        {/* Preferences */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">⚙️</span>
+            <h2 className="font-semibold">Preferences</h2>
+          </div>
+          <div className="space-y-3">
+            <ToggleRow
+              icon={soundEnabled ? '🔊' : '🔇'}
+              label="UI Sounds"
+              sublabel="Sounds for drag, drop, and match events"
+              value={soundEnabled}
+              onChange={() => { sounds.tick(); setSoundEnabled(!soundEnabled); }}
+            />
+            <div className="border-t border-theme/50" />
+            <ToggleRow
+              icon="👁"
+              label="Hide ELO Scores"
+              sublabel="Mask ratings across the app"
+              value={hideElo}
+              onChange={() => { sounds.tick(); setHideElo(!hideElo); }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Row 2: Help ── */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">📚</span>
+          <h2 className="font-semibold">Help & Resources</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={() => { sounds.pickup(); setShowGuide(true); }}
-            className="btn-primary flex items-center justify-center gap-2 w-full"
+            onClick={() => { sounds.pickup(); setShowAppGuide(true); }}
+            className="group flex items-start gap-3 p-4 rounded-xl border border-theme hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-200 text-left"
           >
-            <span>📖</span> Open Guide
+            <div className="w-9 h-9 rounded-lg bg-green-500/15 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-green-500/25 transition-colors">
+              📖
+            </div>
+            <div>
+              <p className="font-semibold text-sm">App Guide</p>
+              <p className="text-xs text-muted mt-0.5 leading-relaxed">Step-by-step walkthrough of every feature in PingTrack.</p>
+            </div>
+          </button>
+          <button
+            onClick={() => { sounds.pickup(); setShowEloGuide(true); }}
+            className="group flex items-start gap-3 p-4 rounded-xl border border-theme hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-200 text-left"
+          >
+            <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-blue-500/25 transition-colors">
+              📊
+            </div>
+            <div>
+              <p className="font-semibold text-sm">ELO Guide</p>
+              <p className="text-xs text-muted mt-0.5 leading-relaxed">How ratings are calculated, K-factors, and example matches.</p>
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Preferences */}
+      {/* ── Tables ── */}
       <div className="card">
-        <h2 className="font-semibold text-lg mb-4">Preferences</h2>
-        <div className="space-y-3">
-          {/* Sound toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg border border-theme bg-input">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{soundEnabled ? '🔊' : '🔇'}</span>
-              <div>
-                <p className="font-medium text-sm">UI Sounds</p>
-                <p className="text-xs text-muted">Play sounds for drag, drop, and match events</p>
-              </div>
-            </div>
-            <button
-              onClick={() => { sounds.tick(); setSoundEnabled(!soundEnabled); }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                soundEnabled ? 'bg-green-500' : 'bg-card border border-theme'
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                soundEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
-          </div>
-
-          {/* Hide ELO toggle */}
-          <div className="flex items-center justify-between p-3 rounded-lg border border-theme bg-input">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">👁</span>
-              <div>
-                <p className="font-medium text-sm">Hide ELO Scores</p>
-                <p className="text-xs text-muted">Mask rating numbers across the app</p>
-              </div>
-            </div>
-            <button
-              onClick={() => { sounds.tick(); setHideElo(!hideElo); }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                hideElo ? 'bg-green-500' : 'bg-card border border-theme'
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                hideElo ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
-          </div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">🏓</span>
+          <h2 className="font-semibold">Tables</h2>
         </div>
-      </div>
-
-      {/* Table Management */}
-      <div className="card">
-        <h2 className="font-semibold text-lg mb-1">Tables</h2>
-        <p className="text-secondary text-sm mb-4">Add or remove tables for your club.</p>
 
         <form onSubmit={addTable} className="flex gap-2 mb-4">
           <input
@@ -283,89 +382,78 @@ export default function SettingsPage() {
             maxLength={40}
           />
           <button type="submit" disabled={loading || !newTable.trim()} className="btn-primary whitespace-nowrap">
-            {loading ? 'Adding…' : '+ Add Table'}
+            {loading ? 'Adding…' : '+ Add'}
           </button>
         </form>
 
         {tables.length === 0 ? (
-          <p className="text-muted text-sm text-center py-4">No tables configured.</p>
+          <p className="text-muted text-sm text-center py-3">No tables configured yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {tables.map(t => (
-              <div key={t.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-theme bg-input transition-all duration-200 hover:border-hover"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">🏓</span>
-                  <div>
-                    <p className="font-medium text-sm">{t.name}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        t.status === 'available' ? 'bg-green-400' : 'bg-orange-400 animate-pulse'
-                      }`} />
-                      <span className="text-xs text-muted capitalize">{t.status}</span>
-                    </div>
-                  </div>
+              <div key={t.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-theme bg-input hover:border-hover transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'available' ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`} />
+                  <p className="font-medium text-sm">{t.name}</p>
+                  <span className="text-xs text-muted capitalize">{t.status}</span>
                 </div>
                 <button
                   onClick={() => removeTable(t.id)}
                   disabled={t.status === 'occupied'}
-                  className="text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10"
-                  title={t.status === 'occupied' ? 'Cannot remove while in use' : 'Remove table'}
-                >
-                  ×
-                </button>
+                  className="text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-lg leading-none"
+                  title={t.status === 'occupied' ? 'Cannot remove while in use' : 'Remove'}
+                >×</button>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Danger Zone */}
+      {/* ── Danger Zone ── */}
       <div className="card border-red-500/20">
-        <h2 className="font-semibold text-lg mb-1 text-red-400">Danger Zone</h2>
-        <p className="text-secondary text-sm mb-4">Destructive actions that cannot be undone.</p>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">⚠️</span>
+          <h2 className="font-semibold text-red-400">Danger Zone</h2>
+        </div>
 
-        <div className="space-y-3">
-          {/* Reset ELO only */}
-          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
-            <div>
+        <div className="space-y-2">
+          {/* Reset ELO */}
+          <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div className="min-w-0">
               <p className="font-medium text-sm">Reset ELO Scores</p>
-              <p className="text-xs text-muted">Set all player ratings back to 1000. Match history is kept.</p>
+              <p className="text-xs text-muted">Set all ratings to 1000. Match history is kept.</p>
             </div>
             {confirmResetElo ? (
-              <div className="flex items-center gap-2 animate-slide-up">
-                <span className="text-red-400 text-xs font-medium">Sure?</span>
-                <button onClick={() => { sounds.void(); handleResetElo(); }} disabled={resettingElo} className="btn-danger text-xs py-1 px-3">
-                  {resettingElo ? '…' : 'Yes'}
-                </button>
-                <button onClick={() => { sounds.cancel(); setConfirmResetElo(false); }} className="btn-secondary text-xs py-1 px-3">No</button>
+              <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
+                <span className="text-red-400 text-xs">Sure?</span>
+                <button onClick={() => { sounds.void(); handleResetElo(); }} disabled={resettingElo}
+                  className="btn-danger text-xs py-1 px-2.5">{resettingElo ? '…' : 'Yes'}</button>
+                <button onClick={() => { sounds.cancel(); setConfirmResetElo(false); }}
+                  className="btn-secondary text-xs py-1 px-2.5">No</button>
               </div>
             ) : (
-              <button onClick={() => { sounds.void(); handleResetElo(); }} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
-                Reset ELO
-              </button>
+              <button onClick={() => { sounds.void(); handleResetElo(); }}
+                className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset ELO</button>
             )}
           </div>
 
-          {/* Reset everything */}
-          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
-            <div>
+          {/* Reset All */}
+          <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div className="min-w-0">
               <p className="font-medium text-sm">Reset Everything</p>
               <p className="text-xs text-muted">Delete all players, matches, queue, and tables.</p>
             </div>
             {confirmReset ? (
-              <div className="flex items-center gap-2 animate-slide-up">
-                <span className="text-red-400 text-xs font-medium">Sure?</span>
-                <button onClick={() => { sounds.void(); handleReset(); }} disabled={resetting} className="btn-danger text-xs py-1 px-3">
-                  {resetting ? '…' : 'Yes'}
-                </button>
-                <button onClick={() => { sounds.cancel(); setConfirmReset(false); }} className="btn-secondary text-xs py-1 px-3">No</button>
+              <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
+                <span className="text-red-400 text-xs">Sure?</span>
+                <button onClick={() => { sounds.void(); handleReset(); }} disabled={resetting}
+                  className="btn-danger text-xs py-1 px-2.5">{resetting ? '…' : 'Yes'}</button>
+                <button onClick={() => { sounds.cancel(); setConfirmReset(false); }}
+                  className="btn-secondary text-xs py-1 px-2.5">No</button>
               </div>
             ) : (
-              <button onClick={() => { sounds.void(); handleReset(); }} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
-                Reset All
-              </button>
+              <button onClick={() => { sounds.void(); handleReset(); }}
+                className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset All</button>
             )}
           </div>
         </div>
