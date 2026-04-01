@@ -63,15 +63,18 @@ const ELO_SECTIONS = [
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 overflow-y-auto"
       style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
       onClick={() => { sounds.cancel(); onClose(); }}
     >
-      <div
-        className="card w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-slide-up p-8"
-        onClick={e => e.stopPropagation()}
-      >
-        {children}
+      {/* pt-20 clears the sticky navbar; pb-8 gives room at bottom */}
+      <div className="flex justify-center min-h-full px-4 pt-20 pb-8">
+        <div
+          className="card w-full max-w-2xl h-fit animate-slide-up p-10"
+          onClick={e => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -79,14 +82,14 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 function ModalHeader({ title, subtitle, onClose }: { title: string; subtitle: string; onClose: () => void }) {
   return (
-    <div className="flex items-start justify-between mb-5">
+    <div className="flex items-start justify-between mb-7">
       <div>
-        <h2 className="text-lg font-bold">{title}</h2>
-        <p className="text-secondary text-xs mt-0.5">{subtitle}</p>
+        <h2 className="text-xl font-bold">{title}</h2>
+        <p className="text-secondary text-sm mt-1">{subtitle}</p>
       </div>
       <button
         onClick={() => { sounds.cancel(); onClose(); }}
-        className="text-muted hover:text-primary transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-card flex-shrink-0 ml-3"
+        className="text-muted hover:text-primary transition-colors text-3xl leading-none w-9 h-9 flex items-center justify-center rounded-lg hover:bg-card flex-shrink-0 ml-4"
       >×</button>
     </div>
   );
@@ -96,21 +99,21 @@ function AppGuideModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <ModalHeader title="How to Use PingTrack" subtitle="Step-by-step app guide" onClose={onClose} />
-      <ol className="space-y-4">
+      <ol className="space-y-5">
         {APP_GUIDE_STEPS.map((step, i) => (
-          <li key={i} className="flex gap-3">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-xs font-bold text-green-400">
+          <li key={i} className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center text-sm font-bold text-green-400">
               {i + 1}
             </div>
-            <div className="pt-0.5">
-              <p className="font-semibold text-sm">{step.icon} {step.title}</p>
-              <p className="text-secondary text-xs mt-1 leading-relaxed">{step.desc}</p>
+            <div className="pt-1">
+              <p className="font-semibold text-base">{step.icon} {step.title}</p>
+              <p className="text-secondary text-sm mt-1 leading-relaxed">{step.desc}</p>
             </div>
           </li>
         ))}
       </ol>
-      <div className="mt-6 pt-4 border-t border-theme text-center">
-        <p className="text-xs text-muted">PingTrack is in beta — all data persists between sessions.</p>
+      <div className="mt-8 pt-5 border-t border-theme text-center">
+        <p className="text-sm text-muted">PingTrack is in beta — all data persists between sessions.</p>
       </div>
     </Modal>
   );
@@ -120,25 +123,25 @@ function EloGuideModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <ModalHeader title="How ELO Works" subtitle="Understanding your rating" onClose={onClose} />
-      <div className="space-y-5">
+      <div className="space-y-7">
         {ELO_SECTIONS.map((section, i) => (
           <div key={i}>
-            <p className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <p className="font-semibold text-base mb-3 flex items-center gap-2">
               <span>{section.icon}</span> {section.title}
             </p>
 
             {section.content && (
-              <p className="text-secondary text-xs leading-relaxed">{section.content}</p>
+              <p className="text-secondary text-sm leading-relaxed">{section.content}</p>
             )}
 
             {section.tiers && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {section.tiers.map((tier, j) => (
-                  <div key={j} className="flex items-center justify-between px-3 py-2 rounded-lg bg-input border border-theme text-xs">
-                    <span className="text-secondary">{tier.label}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      <span className="font-bold text-green-400">K={tier.k}</span>
-                      <span className="text-muted hidden sm:inline">— {tier.note}</span>
+                  <div key={j} className="flex items-center justify-between px-4 py-3 rounded-lg bg-input border border-theme">
+                    <span className="text-secondary text-sm">{tier.label}</span>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                      <span className="font-bold text-green-400 text-sm">K={tier.k}</span>
+                      <span className="text-muted text-xs hidden sm:inline">— {tier.note}</span>
                     </div>
                   </div>
                 ))}
@@ -146,27 +149,25 @@ function EloGuideModal({ onClose }: { onClose: () => void }) {
             )}
 
             {section.formula && (
-              <div className="rounded-lg bg-input border border-theme p-3 space-y-2">
-                <div className="text-xs font-mono text-center text-green-400 py-1">
+              <div className="rounded-lg bg-input border border-theme p-5 space-y-3">
+                <div className="text-sm font-mono text-center text-green-400 py-1">
                   Expected = 1 ÷ (1 + 10 ^ ((opponent − you) ÷ 150))
                 </div>
-                <div className="border-t border-theme pt-2 text-xs font-mono text-center text-primary">
+                <div className="border-t border-theme pt-3 text-sm font-mono text-center text-primary">
                   New Rating = Old Rating + K × (Result − Expected)
                 </div>
-                <p className="text-xs text-muted text-center pt-1">Result = 1 for a win, 0 for a loss</p>
+                <p className="text-sm text-muted text-center pt-1">Result = 1 for a win, 0 for a loss</p>
               </div>
             )}
 
             {section.examples && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {section.examples.map((ex, j) => (
-                  <div key={j} className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${
-                    ex.highlight
-                      ? 'bg-yellow-500/5 border-yellow-500/20'
-                      : 'bg-input border-theme'
+                  <div key={j} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
+                    ex.highlight ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-input border-theme'
                   }`}>
-                    <span className="text-secondary">{ex.scenario}</span>
-                    <span className={`font-medium flex-shrink-0 ml-2 ${ex.highlight ? 'text-yellow-400' : 'text-primary'}`}>
+                    <span className="text-secondary text-sm">{ex.scenario}</span>
+                    <span className={`font-medium flex-shrink-0 ml-4 text-sm ${ex.highlight ? 'text-yellow-400' : 'text-primary'}`}>
                       {ex.result}
                     </span>
                   </div>
@@ -174,12 +175,12 @@ function EloGuideModal({ onClose }: { onClose: () => void }) {
               </div>
             )}
 
-            {i < ELO_SECTIONS.length - 1 && <div className="border-b border-theme/50 mt-4" />}
+            {i < ELO_SECTIONS.length - 1 && <div className="border-b border-theme/50 mt-6" />}
           </div>
         ))}
       </div>
-      <div className="mt-6 pt-4 border-t border-theme text-center">
-        <p className="text-xs text-muted">PingTrack uses the TTR-style formula (divisor 150) used in German club table tennis.</p>
+      <div className="mt-8 pt-5 border-t border-theme text-center">
+        <p className="text-sm text-muted">PingTrack uses the TTR-style formula (divisor 150) used in German club table tennis.</p>
       </div>
     </Modal>
   );
