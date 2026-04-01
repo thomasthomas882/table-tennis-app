@@ -68,7 +68,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
       onClick={() => { sounds.cancel(); onClose(); }}
     >
       <div
-        className="card w-full max-w-lg max-h-[88vh] overflow-y-auto animate-slide-up"
+        className="card w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-slide-up p-8"
         onClick={e => e.stopPropagation()}
       >
         {children}
@@ -258,204 +258,220 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-3xl">
+    <div className="animate-fade-in">
       {showAppGuide && <AppGuideModal onClose={() => setShowAppGuide(false)} />}
       {showEloGuide && <EloGuideModal onClose={() => setShowEloGuide(false)} />}
 
-      <div>
+      <div className="mb-7">
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-secondary text-sm mt-1">Manage your club, preferences, and account.</p>
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up">
+        <div className="bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-slide-up mb-6">
           <span>⚠</span> {error}
           <button onClick={() => { sounds.cancel(); setError(''); }} className="ml-auto opacity-60 hover:opacity-100">×</button>
         </div>
       )}
 
-      {/* ── Row 1: Appearance + Preferences ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      {/* ── Main two-column layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-6 items-start">
 
-        {/* Appearance */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">🎨</span>
-            <h2 className="font-semibold">Appearance</h2>
-          </div>
-          <div className="flex gap-2">
-            {[
-              { value: 'dark' as const, icon: '🌙', label: 'Dark', sub: 'Easy on the eyes' },
-              { value: 'light' as const, icon: '☀️', label: 'Light', sub: 'Bright and clean' },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => { sounds.click(); setTheme(opt.value); }}
-                className={`flex-1 flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all duration-200 ${
-                  theme === opt.value ? 'border-green-500 bg-green-500/10' : 'border-theme hover:border-hover'
-                }`}
-              >
-                <span className="text-xl">{opt.icon}</span>
-                <div className="text-left">
-                  <p className="font-medium text-sm">{opt.label}</p>
-                  <p className="text-muted text-xs">{opt.sub}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Left column: Appearance, Preferences, Help */}
+        <div className="space-y-6">
 
-        {/* Preferences */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">⚙️</span>
-            <h2 className="font-semibold">Preferences</h2>
-          </div>
-          <div className="space-y-3">
-            <ToggleRow
-              icon={soundEnabled ? '🔊' : '🔇'}
-              label="UI Sounds"
-              sublabel="Sounds for drag, drop, and match events"
-              value={soundEnabled}
-              onChange={() => { sounds.tick(); setSoundEnabled(!soundEnabled); }}
-            />
-            <div className="border-t border-theme/50" />
-            <ToggleRow
-              icon="👁"
-              label="Hide ELO Scores"
-              sublabel="Mask ratings across the app"
-              value={hideElo}
-              onChange={() => { sounds.tick(); setHideElo(!hideElo); }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 2: Help ── */}
-      <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">📚</span>
-          <h2 className="font-semibold">Help & Resources</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => { sounds.pickup(); setShowAppGuide(true); }}
-            className="group flex items-start gap-3 p-4 rounded-xl border border-theme hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-200 text-left"
-          >
-            <div className="w-9 h-9 rounded-lg bg-green-500/15 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-green-500/25 transition-colors">
-              📖
+          {/* Appearance */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">🎨</span>
+              <h2 className="font-semibold text-base">Appearance</h2>
             </div>
-            <div>
-              <p className="font-semibold text-sm">App Guide</p>
-              <p className="text-xs text-muted mt-0.5 leading-relaxed">Step-by-step walkthrough of every feature in PingTrack.</p>
-            </div>
-          </button>
-          <button
-            onClick={() => { sounds.pickup(); setShowEloGuide(true); }}
-            className="group flex items-start gap-3 p-4 rounded-xl border border-theme hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-200 text-left"
-          >
-            <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-blue-500/25 transition-colors">
-              📊
-            </div>
-            <div>
-              <p className="font-semibold text-sm">ELO Guide</p>
-              <p className="text-xs text-muted mt-0.5 leading-relaxed">How ratings are calculated, K-factors, and example matches.</p>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Tables ── */}
-      <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">🏓</span>
-          <h2 className="font-semibold">Tables</h2>
-        </div>
-
-        <form onSubmit={addTable} className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newTable}
-            onChange={e => setNewTable(e.target.value)}
-            placeholder="New table name…"
-            className="input flex-1"
-            maxLength={40}
-          />
-          <button type="submit" disabled={loading || !newTable.trim()} className="btn-primary whitespace-nowrap">
-            {loading ? 'Adding…' : '+ Add'}
-          </button>
-        </form>
-
-        {tables.length === 0 ? (
-          <p className="text-muted text-sm text-center py-3">No tables configured yet.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {tables.map(t => (
-              <div key={t.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-theme bg-input hover:border-hover transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.status === 'available' ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`} />
-                  <p className="font-medium text-sm">{t.name}</p>
-                  <span className="text-xs text-muted capitalize">{t.status}</span>
-                </div>
+            <div className="flex gap-3">
+              {[
+                { value: 'dark' as const, icon: '🌙', label: 'Dark', sub: 'Easy on the eyes' },
+                { value: 'light' as const, icon: '☀️', label: 'Light', sub: 'Bright and clean' },
+              ].map(opt => (
                 <button
-                  onClick={() => removeTable(t.id)}
-                  disabled={t.status === 'occupied'}
-                  className="text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-lg leading-none"
-                  title={t.status === 'occupied' ? 'Cannot remove while in use' : 'Remove'}
-                >×</button>
-              </div>
-            ))}
+                  key={opt.value}
+                  onClick={() => { sounds.click(); setTheme(opt.value); }}
+                  className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+                    theme === opt.value ? 'border-green-500 bg-green-500/10' : 'border-theme hover:border-hover'
+                  }`}
+                >
+                  <span className="text-2xl">{opt.icon}</span>
+                  <div className="text-left">
+                    <p className="font-medium text-sm">{opt.label}</p>
+                    <p className="text-muted text-xs">{opt.sub}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* ── Danger Zone ── */}
-      <div className="card border-red-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">⚠️</span>
-          <h2 className="font-semibold text-red-400">Danger Zone</h2>
+          {/* Preferences */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">⚙️</span>
+              <h2 className="font-semibold text-base">Preferences</h2>
+            </div>
+            <div className="space-y-4">
+              <ToggleRow
+                icon={soundEnabled ? '🔊' : '🔇'}
+                label="UI Sounds"
+                sublabel="Sounds for drag, drop, and match events"
+                value={soundEnabled}
+                onChange={() => { sounds.tick(); setSoundEnabled(!soundEnabled); }}
+              />
+              <div className="border-t border-theme/50" />
+              <ToggleRow
+                icon="👁"
+                label="Hide ELO Scores"
+                sublabel="Mask ratings across the app"
+                value={hideElo}
+                onChange={() => { sounds.tick(); setHideElo(!hideElo); }}
+              />
+            </div>
+          </div>
+
+          {/* Help */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">📚</span>
+              <h2 className="font-semibold text-base">Help & Resources</h2>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => { sounds.pickup(); setShowAppGuide(true); }}
+                className="group w-full flex items-center gap-4 p-4 rounded-xl border border-theme hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-200 text-left"
+              >
+                <div className="w-10 h-10 rounded-lg bg-green-500/15 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-green-500/25 transition-colors">
+                  📖
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">App Guide</p>
+                  <p className="text-xs text-muted mt-0.5">Step-by-step walkthrough of every feature.</p>
+                </div>
+                <span className="ml-auto text-muted group-hover:text-primary transition-colors text-sm">→</span>
+              </button>
+              <button
+                onClick={() => { sounds.pickup(); setShowEloGuide(true); }}
+                className="group w-full flex items-center gap-4 p-4 rounded-xl border border-theme hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-200 text-left"
+              >
+                <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-blue-500/25 transition-colors">
+                  📊
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">ELO Guide</p>
+                  <p className="text-xs text-muted mt-0.5">How ratings work, K-factors, and examples.</p>
+                </div>
+                <span className="ml-auto text-muted group-hover:text-primary transition-colors text-sm">→</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          {/* Reset ELO */}
-          <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5">
-            <div className="min-w-0">
-              <p className="font-medium text-sm">Reset ELO Scores</p>
-              <p className="text-xs text-muted">Set all ratings to 1000. Match history is kept.</p>
+        {/* Right column: Tables + Danger Zone */}
+        <div className="space-y-6">
+
+          {/* Tables */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">🏓</span>
+              <h2 className="font-semibold text-base">Tables</h2>
+              <span className="ml-auto text-xs text-muted">{tables.length} configured</span>
             </div>
-            {confirmResetElo ? (
-              <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
-                <span className="text-red-400 text-xs">Sure?</span>
-                <button onClick={() => { sounds.void(); handleResetElo(); }} disabled={resettingElo}
-                  className="btn-danger text-xs py-1 px-2.5">{resettingElo ? '…' : 'Yes'}</button>
-                <button onClick={() => { sounds.cancel(); setConfirmResetElo(false); }}
-                  className="btn-secondary text-xs py-1 px-2.5">No</button>
+
+            <form onSubmit={addTable} className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newTable}
+                onChange={e => setNewTable(e.target.value)}
+                placeholder="New table name…"
+                className="input flex-1"
+                maxLength={40}
+              />
+              <button type="submit" disabled={loading || !newTable.trim()} className="btn-primary whitespace-nowrap">
+                {loading ? 'Adding…' : '+ Add'}
+              </button>
+            </form>
+
+            {tables.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-3xl mb-2">🏓</p>
+                <p className="text-muted text-sm">No tables configured yet.</p>
+                <p className="text-muted text-xs mt-1">Add one above to get started.</p>
               </div>
             ) : (
-              <button onClick={() => { sounds.void(); handleResetElo(); }}
-                className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset ELO</button>
+              <div className="space-y-2">
+                {tables.map(t => (
+                  <div key={t.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-theme bg-input hover:border-hover transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${t.status === 'available' ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`} />
+                      <p className="font-medium text-sm">{t.name}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${t.status === 'available' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}`}>
+                        {t.status}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => removeTable(t.id)}
+                      disabled={t.status === 'occupied'}
+                      className="text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-lg leading-none"
+                      title={t.status === 'occupied' ? 'Cannot remove while in use' : 'Remove'}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Reset All */}
-          <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5">
-            <div className="min-w-0">
-              <p className="font-medium text-sm">Reset Everything</p>
-              <p className="text-xs text-muted">Delete all players, matches, queue, and tables.</p>
+          {/* Danger Zone */}
+          <div className="card p-6 border-red-500/20">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">⚠️</span>
+              <h2 className="font-semibold text-base text-red-400">Danger Zone</h2>
             </div>
-            {confirmReset ? (
-              <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
-                <span className="text-red-400 text-xs">Sure?</span>
-                <button onClick={() => { sounds.void(); handleReset(); }} disabled={resetting}
-                  className="btn-danger text-xs py-1 px-2.5">{resetting ? '…' : 'Yes'}</button>
-                <button onClick={() => { sounds.cancel(); setConfirmReset(false); }}
-                  className="btn-secondary text-xs py-1 px-2.5">No</button>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Reset ELO Scores</p>
+                  <p className="text-xs text-muted mt-0.5">Set all ratings to 1000. Match history is kept.</p>
+                </div>
+                {confirmResetElo ? (
+                  <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
+                    <span className="text-red-400 text-xs font-medium">Sure?</span>
+                    <button onClick={() => { sounds.void(); handleResetElo(); }} disabled={resettingElo}
+                      className="btn-danger text-xs py-1 px-3">{resettingElo ? '…' : 'Yes'}</button>
+                    <button onClick={() => { sounds.cancel(); setConfirmResetElo(false); }}
+                      className="btn-secondary text-xs py-1 px-3">No</button>
+                  </div>
+                ) : (
+                  <button onClick={() => { sounds.void(); handleResetElo(); }}
+                    className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset ELO</button>
+                )}
               </div>
-            ) : (
-              <button onClick={() => { sounds.void(); handleReset(); }}
-                className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset All</button>
-            )}
+
+              <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Reset Everything</p>
+                  <p className="text-xs text-muted mt-0.5">Delete all players, matches, queue, and tables.</p>
+                </div>
+                {confirmReset ? (
+                  <div className="flex items-center gap-1.5 flex-shrink-0 animate-slide-up">
+                    <span className="text-red-400 text-xs font-medium">Sure?</span>
+                    <button onClick={() => { sounds.void(); handleReset(); }} disabled={resetting}
+                      className="btn-danger text-xs py-1 px-3">{resetting ? '…' : 'Yes'}</button>
+                    <button onClick={() => { sounds.cancel(); setConfirmReset(false); }}
+                      className="btn-secondary text-xs py-1 px-3">No</button>
+                  </div>
+                ) : (
+                  <button onClick={() => { sounds.void(); handleReset(); }}
+                    className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0">Reset All</button>
+                )}
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
