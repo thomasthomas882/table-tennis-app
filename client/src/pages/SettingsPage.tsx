@@ -89,13 +89,28 @@ function GuideModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function SettingsPage() {
-  const { theme, setTheme, tables } = useApp();
+  const { theme, setTheme, tables, soundEnabled, setSoundEnabled, hideElo, setHideElo } = useApp();
   const [newTable, setNewTable] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmResetElo, setConfirmResetElo] = useState(false);
+  const [resettingElo, setResettingElo] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+
+  async function handleResetElo() {
+    if (!confirmResetElo) { setConfirmResetElo(true); return; }
+    setResettingElo(true);
+    try {
+      await api.resetElo();
+      setConfirmResetElo(false);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setResettingElo(false);
+    }
+  }
 
   async function addTable(e: React.FormEvent) {
     e.preventDefault();
@@ -202,6 +217,54 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Preferences */}
+      <div className="card">
+        <h2 className="font-semibold text-lg mb-4">Preferences</h2>
+        <div className="space-y-3">
+          {/* Sound toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-theme bg-input">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">{soundEnabled ? '🔊' : '🔇'}</span>
+              <div>
+                <p className="font-medium text-sm">UI Sounds</p>
+                <p className="text-xs text-muted">Play sounds for drag, drop, and match events</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                soundEnabled ? 'bg-green-500' : 'bg-card border border-theme'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                soundEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+
+          {/* Hide ELO toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-theme bg-input">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">👁</span>
+              <div>
+                <p className="font-medium text-sm">Hide ELO Scores</p>
+                <p className="text-xs text-muted">Mask rating numbers across the app</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setHideElo(!hideElo)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                hideElo ? 'bg-green-500' : 'bg-card border border-theme'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                hideElo ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Table Management */}
       <div className="card">
         <h2 className="font-semibold text-lg mb-1">Tables</h2>
@@ -255,34 +318,54 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Reset */}
+      {/* Danger Zone */}
       <div className="card border-red-500/20">
         <h2 className="font-semibold text-lg mb-1 text-red-400">Danger Zone</h2>
-        <p className="text-secondary text-sm mb-4">
-          Reset everything — all players, matches, queue, and tables will be deleted. This cannot be undone.
-        </p>
-        {confirmReset ? (
-          <div className="flex items-center gap-3 animate-slide-up">
-            <p className="text-red-400 text-sm font-medium">Are you sure?</p>
-            <button
-              onClick={handleReset}
-              disabled={resetting}
-              className="btn-danger"
-            >
-              {resetting ? 'Resetting…' : 'Yes, Reset Everything'}
-            </button>
-            <button
-              onClick={() => setConfirmReset(false)}
-              className="btn-secondary text-sm"
-            >
-              Cancel
-            </button>
+        <p className="text-secondary text-sm mb-4">Destructive actions that cannot be undone.</p>
+
+        <div className="space-y-3">
+          {/* Reset ELO only */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div>
+              <p className="font-medium text-sm">Reset ELO Scores</p>
+              <p className="text-xs text-muted">Set all player ratings back to 1000. Match history is kept.</p>
+            </div>
+            {confirmResetElo ? (
+              <div className="flex items-center gap-2 animate-slide-up">
+                <span className="text-red-400 text-xs font-medium">Sure?</span>
+                <button onClick={handleResetElo} disabled={resettingElo} className="btn-danger text-xs py-1 px-3">
+                  {resettingElo ? '…' : 'Yes'}
+                </button>
+                <button onClick={() => setConfirmResetElo(false)} className="btn-secondary text-xs py-1 px-3">No</button>
+              </div>
+            ) : (
+              <button onClick={handleResetElo} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
+                Reset ELO
+              </button>
+            )}
           </div>
-        ) : (
-          <button onClick={handleReset} className="btn-danger">
-            Reset Everything
-          </button>
-        )}
+
+          {/* Reset everything */}
+          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div>
+              <p className="font-medium text-sm">Reset Everything</p>
+              <p className="text-xs text-muted">Delete all players, matches, queue, and tables.</p>
+            </div>
+            {confirmReset ? (
+              <div className="flex items-center gap-2 animate-slide-up">
+                <span className="text-red-400 text-xs font-medium">Sure?</span>
+                <button onClick={handleReset} disabled={resetting} className="btn-danger text-xs py-1 px-3">
+                  {resetting ? '…' : 'Yes'}
+                </button>
+                <button onClick={() => setConfirmReset(false)} className="btn-secondary text-xs py-1 px-3">No</button>
+              </div>
+            ) : (
+              <button onClick={handleReset} className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap">
+                Reset All
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

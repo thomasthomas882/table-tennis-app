@@ -5,6 +5,7 @@ import { Player, QueueEntry, Table, Match, Notification, Stats } from './types';
 import { api } from './api';
 import Navbar from './components/Navbar';
 import NotificationToast from './components/NotificationToast';
+import { setSoundEnabled } from './utils/sounds';
 import Dashboard from './pages/Dashboard';
 import QueuePage from './pages/QueuePage';
 import MatchesPage from './pages/MatchesPage';
@@ -26,12 +27,18 @@ interface AppCtx {
   refreshStats: () => void;
   theme: Theme;
   setTheme: (t: Theme) => void;
+  soundEnabled: boolean;
+  setSoundEnabled: (v: boolean) => void;
+  hideElo: boolean;
+  setHideElo: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppCtx>({
   players: [], queue: [], tables: [], activeMatches: [],
   stats: null, connected: false, refreshStats: () => {},
   theme: 'dark', setTheme: () => {},
+  soundEnabled: true, setSoundEnabled: () => {},
+  hideElo: false, setHideElo: () => {},
 });
 
 export function useApp() {
@@ -51,11 +58,31 @@ export default function App() {
   const [theme, setThemeState] = useState<Theme>(() => {
     return (localStorage.getItem('pingtrack-theme') as Theme) || 'dark';
   });
+  const [soundEnabledState, setSoundEnabledState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-sound') !== 'false';
+  });
+  const [hideElo, setHideEloState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-hide-elo') === 'true';
+  });
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
     localStorage.setItem('pingtrack-theme', t);
   };
+
+  const handleSetSoundEnabled = (v: boolean) => {
+    setSoundEnabledState(v);
+    setSoundEnabled(v);
+    localStorage.setItem('pingtrack-sound', String(v));
+  };
+
+  const handleSetHideElo = (v: boolean) => {
+    setHideEloState(v);
+    localStorage.setItem('pingtrack-hide-elo', String(v));
+  };
+
+  // Sync sound module with persisted preference on mount
+  useEffect(() => { setSoundEnabled(soundEnabledState); }, []);
 
   // Apply theme class to html element
   useEffect(() => {
@@ -116,7 +143,12 @@ export default function App() {
   };
 
   return (
-    <AppContext.Provider value={{ players, queue, tables, activeMatches, stats, connected, refreshStats, theme, setTheme }}>
+    <AppContext.Provider value={{
+      players, queue, tables, activeMatches, stats, connected, refreshStats,
+      theme, setTheme,
+      soundEnabled: soundEnabledState, setSoundEnabled: handleSetSoundEnabled,
+      hideElo, setHideElo: handleSetHideElo,
+    }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
         <main className="max-w-7xl mx-auto px-4 py-6">

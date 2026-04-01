@@ -3,7 +3,7 @@ import { useApp } from '../App';
 import { api } from '../api';
 
 export default function PlayersPage() {
-  const { players, queue, activeMatches } = useApp();
+  const { players, queue, activeMatches, hideElo } = useApp();
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -109,10 +109,12 @@ export default function PlayersPage() {
                 </div>
 
                 <h3 className="font-semibold truncate pr-4">{p.name}</h3>
-                <p className="text-3xl font-bold text-green-400 mt-0.5 tabular-nums">
-                  {p.elo}
-                  <span className="text-sm text-muted font-normal ml-1">ELO</span>
-                </p>
+                {!hideElo && (
+                  <p className="text-3xl font-bold text-green-400 mt-0.5 tabular-nums">
+                    {p.elo}
+                    <span className="text-sm text-muted font-normal ml-1">ELO</span>
+                  </p>
+                )}
 
                 <div className="mt-3 pt-3 border-t border-theme grid grid-cols-3 gap-1 text-center text-xs">
                   <div>

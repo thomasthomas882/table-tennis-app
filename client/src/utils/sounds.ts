@@ -1,5 +1,7 @@
 // Lazy AudioContext — created on first user interaction to comply with browser policies
 let ctx: AudioContext | null = null;
+let soundEnabled = true;
+export function setSoundEnabled(v: boolean) { soundEnabled = v; }
 
 function getCtx(): AudioContext | null {
   try {
@@ -19,6 +21,7 @@ function tone(
   delay = 0,
   freqEnd?: number,
 ) {
+  if (!soundEnabled) return;
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime + delay;

@@ -57,4 +57,5 @@ export const api = {
 
   // Admin
   resetAll: () => request('/reset', { method: 'POST' }),
+  resetElo: () => request('/reset-elo', { method: 'POST' }),
 };

@@ -275,9 +275,11 @@ app.post('/api/matches/:id/complete', (req, res) => {
   const winnerPlayers = winnerIds.map(id => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
   const loserPlayers  = loserIds.map(id  => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
 
-  const avgWinnerElo = Math.round(winnerPlayers.reduce((s, p) => s + p.elo, 0) / winnerPlayers.length);
-  const avgLoserElo  = Math.round(loserPlayers.reduce((s, p)  => s + p.elo, 0)  / loserPlayers.length);
-  const { winnerDelta, loserDelta } = calculateNewRatings(avgWinnerElo, avgLoserElo);
+  const avgWinnerElo     = Math.round(winnerPlayers.reduce((s, p) => s + p.elo, 0) / winnerPlayers.length);
+  const avgLoserElo      = Math.round(loserPlayers.reduce((s, p)  => s + p.elo, 0)  / loserPlayers.length);
+  const avgWinnerMatches = Math.round(winnerPlayers.reduce((s, p) => s + p.wins + p.losses, 0) / winnerPlayers.length);
+  const avgLoserMatches  = Math.round(loserPlayers.reduce((s, p)  => s + p.wins + p.losses, 0)  / loserPlayers.length);
+  const { winnerDelta, loserDelta } = calculateNewRatings(avgWinnerElo, avgLoserElo, avgWinnerMatches, avgLoserMatches);
 
   const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
 
@@ -363,6 +365,17 @@ app.get('/api/stats', (req, res) => {
     activeMatches: db.prepare("SELECT COUNT(*) as c FROM matches WHERE status = 'in_progress'").get().c,
     queueLength: db.prepare('SELECT COUNT(*) as c FROM queue').get().c,
   });
+});
+
+// ─── Reset ELO only ──────────────────────────────────────────────────────────
+
+app.post('/api/reset-elo', (req, res) => {
+  db.exec('UPDATE players SET elo = 1000');
+  const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
+  broadcast('players:updated', players);
+  broadcast('leaderboard:updated', players);
+  notify('All ELO ratings have been reset to 1000', 'warning');
+  res.json({ ok: true });
 });
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
