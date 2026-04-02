@@ -237,7 +237,7 @@ function TableCard({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function QueuePage() {
-  const { players, queue, tables, activeMatches } = useApp();
+  const { players, queue, tables, activeMatches, hideElo } = useApp();
 
   // ── Local ordered tables (optimistic reorder) ──────────────────
   const [localTableIds, setLocalTableIds] = useState<number[]>([]);
@@ -518,7 +518,7 @@ export default function QueuePage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{entry.name}</p>
                         <p className="text-xs text-muted">
-                          ELO {entry.elo}
+                          {!hideElo && <>ELO {entry.elo}</>}
                           {stagedOnTable && (
                             <span className="ml-2 text-blue-400">📍 {stagedOnTable.name}</span>
                           )}
@@ -540,7 +540,7 @@ export default function QueuePage() {
               <p className="text-xs font-medium text-secondary mb-2 uppercase tracking-wider">Add player to queue</p>
               <div className="flex gap-2">
                 <SearchableSelect
-                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: `ELO ${p.elo}` }))}
+                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: hideElo ? undefined : `ELO ${p.elo}` }))}
                   value={selectedPlayer}
                   onChange={setSelectedPlayer}
                   placeholder="Search player…"

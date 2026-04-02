@@ -294,6 +294,7 @@ function ScoreDisplay({ value, flash }: { value: number; flash: boolean }) {
 }
 
 function PlayerTeamDisplay({ names, elos, leading }: { names: string[]; elos: (number | null)[]; leading: boolean }) {
+  const { hideElo } = useApp();
   return (
     <div className={`text-center transition-opacity duration-300 ${leading ? 'opacity-100' : 'opacity-60'}`}>
       {names.map((name, i) => (
@@ -304,7 +305,7 @@ function PlayerTeamDisplay({ names, elos, leading }: { names: string[]; elos: (n
       <p className={`text-sm font-semibold truncate ${leading ? 'text-primary' : 'text-secondary'}`}>
         {names.join(' & ')}
       </p>
-      <p className="text-xs text-faint mb-2">ELO {elos.filter(Boolean).join(' / ')}</p>
+      {!hideElo && <p className="text-xs text-faint mb-2">ELO {elos.filter(Boolean).join(' / ')}</p>}
     </div>
   );
 }
