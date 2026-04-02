@@ -70,7 +70,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
       {/* pt-20 clears the sticky navbar; pb-8 gives room at bottom */}
       <div className="flex justify-center min-h-full px-4 pt-20 pb-8">
         <div
-          className="card w-full max-w-2xl h-fit animate-slide-up p-10"
+          className="card w-full max-w-3xl h-fit animate-slide-up p-10"
           onClick={e => e.stopPropagation()}
         >
           {children}

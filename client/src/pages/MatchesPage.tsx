@@ -133,6 +133,135 @@ function PingPongAnimation() {
   );
 }
 
+function DoublesAnimation() {
+  // 4.4s cycle — each of the 4 paddles swings once per cycle (every 1.1s)
+  const DUR = '4.4s';
+  const ballX   = '18;88;162;88;18;88;162;88;18';
+  const ballY   = '34;8;34;8;34;8;34;8;34';
+  const times   = '0;0.125;0.25;0.375;0.5;0.625;0.75;0.875;1';
+  const splines = '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1';
+  const hlX = '20;90;164;90;20;90;164;90;20';
+  const hlY = '31;5;31;5;31;5;31;5;31';
+
+  return (
+    <div className="flex justify-center items-center py-1">
+      <svg width="196" height="66" viewBox="-10 -4 196 66" fill="none">
+        <defs>
+          <style>{`
+            /* L1 hits at t=0%, L2 hits at t=50% */
+            @keyframes ppDblL1 {
+              0%   { transform: rotate(-7deg); }
+              4%   { transform: rotate(14deg); }
+              14%  { transform: rotate(-7deg); }
+              100% { transform: rotate(-7deg); }
+            }
+            @keyframes ppDblL2 {
+              0%   { transform: rotate(-7deg); }
+              50%  { transform: rotate(-7deg); }
+              54%  { transform: rotate(14deg); }
+              64%  { transform: rotate(-7deg); }
+              100% { transform: rotate(-7deg); }
+            }
+            /* R1 hits at t=25%, R2 hits at t=75% */
+            @keyframes ppDblR1 {
+              0%   { transform: rotate(7deg); }
+              25%  { transform: rotate(7deg); }
+              29%  { transform: rotate(-14deg); }
+              39%  { transform: rotate(7deg); }
+              100% { transform: rotate(7deg); }
+            }
+            @keyframes ppDblR2 {
+              0%   { transform: rotate(7deg); }
+              75%  { transform: rotate(7deg); }
+              79%  { transform: rotate(-14deg); }
+              89%  { transform: rotate(7deg); }
+              100% { transform: rotate(7deg); }
+            }
+            .pp-dbl-l1 { transform-box: fill-box; transform-origin: 50% 85%; animation: ppDblL1 ${DUR} ease-in-out infinite; }
+            .pp-dbl-l2 { transform-box: fill-box; transform-origin: 50% 85%; animation: ppDblL2 ${DUR} ease-in-out infinite; }
+            .pp-dbl-r1 { transform-box: fill-box; transform-origin: 50% 85%; animation: ppDblR1 ${DUR} ease-in-out infinite; }
+            .pp-dbl-r2 { transform-box: fill-box; transform-origin: 50% 85%; animation: ppDblR2 ${DUR} ease-in-out infinite; }
+          `}</style>
+
+          <linearGradient id="dblTableGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#166534"/><stop offset="100%" stopColor="#14532d"/>
+          </linearGradient>
+          <linearGradient id="dblEdgeGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#15803d"/><stop offset="100%" stopColor="#052e16"/>
+          </linearGradient>
+          <radialGradient id="dblBallGrad" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stopColor="#ffffff"/><stop offset="60%" stopColor="#f0f0e8"/><stop offset="100%" stopColor="#d4d4c8"/>
+          </radialGradient>
+          <radialGradient id="dblPaddleGrad" cx="40%" cy="35%" r="70%">
+            <stop offset="0%" stopColor="#fb923c"/><stop offset="100%" stopColor="#c2410c"/>
+          </radialGradient>
+        </defs>
+
+        {/* ── Table ── */}
+        <rect x="28" y="42" width="124" height="5" rx="1" fill="url(#dblEdgeGrad)" opacity="0.9"/>
+        <rect x="28" y="32" width="124" height="12" rx="2" fill="url(#dblTableGrad)"/>
+        <rect x="28" y="32" width="124" height="1.5" rx="0.5" fill="white" opacity="0.25"/>
+        <line x1="88" y1="33.5" x2="88" y2="41.5" stroke="white" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.3"/>
+        {/* Net */}
+        <rect x="85.5" y="24" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
+        <rect x="89"   y="24" width="1.5" height="9" rx="0.5" fill="#94a3b8" opacity="0.8"/>
+        <line x1="86" y1="24" x2="90" y2="24" stroke="white" strokeWidth="1.2" opacity="0.7"/>
+
+        {/* ── Left paddle 1 (upper) — hits at t=0% ── */}
+        <g className="pp-dbl-l1">
+          <rect x="14" y="33" width="5" height="12" rx="2.5" fill="#78350f"/>
+          <ellipse cx="17" cy="22" rx="7" ry="10" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="17" cy="22" rx="6" ry="9"  fill="url(#dblPaddleGrad)"/>
+          <ellipse cx="15" cy="17" rx="2" ry="3"  fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Left paddle 2 (lower) — hits at t=50% ── */}
+        <g className="pp-dbl-l2">
+          <rect x="14" y="42" width="5" height="10" rx="2.5" fill="#78350f"/>
+          <ellipse cx="17" cy="34" rx="7" ry="8"  fill="#d97706" opacity="0.85"/>
+          <ellipse cx="17" cy="34" rx="6" ry="7"  fill="url(#dblPaddleGrad)"/>
+          <ellipse cx="15" cy="30" rx="2" ry="2.5" fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Right paddle 1 (upper) — hits at t=25% ── */}
+        <g className="pp-dbl-r1">
+          <rect x="161" y="33" width="5" height="12" rx="2.5" fill="#78350f"/>
+          <ellipse cx="163" cy="22" rx="7" ry="10" fill="#d97706" opacity="0.9"/>
+          <ellipse cx="163" cy="22" rx="6" ry="9"  fill="url(#dblPaddleGrad)"/>
+          <ellipse cx="161" cy="17" rx="2" ry="3"  fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Right paddle 2 (lower) — hits at t=75% ── */}
+        <g className="pp-dbl-r2">
+          <rect x="161" y="42" width="5" height="10" rx="2.5" fill="#78350f"/>
+          <ellipse cx="163" cy="34" rx="7" ry="8"  fill="#d97706" opacity="0.85"/>
+          <ellipse cx="163" cy="34" rx="6" ry="7"  fill="url(#dblPaddleGrad)"/>
+          <ellipse cx="161" cy="30" rx="2" ry="2.5" fill="white" opacity="0.2"/>
+        </g>
+
+        {/* ── Ball shadow ── */}
+        <ellipse cy="41.5" ry="1.8" fill="black" opacity="0.25">
+          <animate attributeName="cx" values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+          <animate attributeName="rx" values="5;1.5;5;1.5;5;1.5;5;1.5;5" keyTimes={times} dur={DUR} repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.28;0.06;0.28;0.06;0.28;0.06;0.28;0.06;0.28" keyTimes={times} dur={DUR} repeatCount="indefinite"/>
+        </ellipse>
+
+        {/* ── Ball ── */}
+        <circle r="6" fill="url(#dblBallGrad)">
+          <animate attributeName="cx" values={ballX} keyTimes={times} dur={DUR} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+          <animate attributeName="cy" values={ballY} keyTimes={times} dur={DUR} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+        </circle>
+
+        {/* ── Specular highlight ── */}
+        <circle r="2" fill="white" opacity="0.65">
+          <animate attributeName="cx" values={hlX} keyTimes={times} dur={DUR} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+          <animate attributeName="cy" values={hlY} keyTimes={times} dur={DUR} repeatCount="indefinite" calcMode="spline" keySplines={splines}/>
+        </circle>
+      </svg>
+    </div>
+  );
+}
+
 function Stopwatch({ startedAt }: { startedAt: string }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -273,7 +402,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <PingPongAnimation />
+          {isDoubles ? <DoublesAnimation /> : <PingPongAnimation />}
           <span className="text-xs text-faint font-medium tracking-widest">VS</span>
         </div>
 
