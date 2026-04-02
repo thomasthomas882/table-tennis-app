@@ -67,10 +67,9 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
       style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
       onClick={() => { sounds.cancel(); onClose(); }}
     >
-      {/* pt-20 clears the sticky navbar; pb-8 gives room at bottom */}
-      <div className="flex justify-center min-h-full px-4 pt-20 pb-8">
+      <div className="flex justify-center px-4 py-20">
         <div
-          className="card w-full max-w-3xl h-fit animate-slide-up p-10"
+          className="card w-full max-w-3xl animate-slide-up p-10"
           onClick={e => e.stopPropagation()}
         >
           {children}
