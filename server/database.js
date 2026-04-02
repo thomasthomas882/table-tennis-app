@@ -52,11 +52,40 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS elo_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    elo INTEGER NOT NULL,
+    elo_delta INTEGER NOT NULL,
+    match_id INTEGER REFERENCES matches(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS series (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player1_id INTEGER NOT NULL REFERENCES players(id),
+    player2_id INTEGER NOT NULL REFERENCES players(id),
+    format INTEGER NOT NULL DEFAULT 3,
+    wins1 INTEGER NOT NULL DEFAULT 0,
+    wins2 INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed')),
+    winner_id INTEGER REFERENCES players(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at TEXT
+  )
+`);
+
 // Migrations for existing databases (safe to re-run)
 try { db.exec('ALTER TABLE queue ADD COLUMN position INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN player3_id INTEGER REFERENCES players(id)'); } catch (_) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN player4_id INTEGER REFERENCES players(id)'); } catch (_) {}
 try { db.exec('ALTER TABLE tables_tt ADD COLUMN position INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN current_streak INTEGER DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN best_streak INTEGER DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE matches ADD COLUMN series_id INTEGER REFERENCES series(id)'); } catch (_) {}
 
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;
