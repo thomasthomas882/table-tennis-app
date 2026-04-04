@@ -55,6 +55,19 @@ export const api = {
   // Stats
   getStats: () => request('/stats'),
 
+  // Match history (paginated)
+  getMatchHistory: (page = 1, limit = 20) =>
+    request(`/matches/history?page=${page}&limit=${limit}`),
+
+  // Player stats
+  getPlayerStats: (id: number) => request(`/players/${id}/stats`),
+
+  // Series
+  getSeries: (status?: string) => request(`/series${status ? `?status=${status}` : ''}`),
+  createSeries: (player1_id: number, player2_id: number, format: number) =>
+    request('/series', { method: 'POST', body: JSON.stringify({ player1_id, player2_id, format }) }),
+  deleteSeries: (id: number) => request(`/series/${id}`, { method: 'DELETE' }),
+
   // Admin
   resetAll: () => request('/reset', { method: 'POST' }),
   resetElo: () => request('/reset-elo', { method: 'POST' }),

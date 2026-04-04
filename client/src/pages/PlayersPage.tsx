@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
 import { api } from '../api';
 import { sounds } from '../utils/sounds';
 
 export default function PlayersPage() {
   const { players, queue, activeMatches, hideElo } = useApp();
+  const navigate = useNavigate();
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,10 +87,11 @@ export default function PlayersPage() {
 
             return (
               <div key={p.id}
-                className="card relative group cursor-default animate-pop-in"
-                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
+                className="card relative group cursor-pointer animate-pop-in hover:border-hover transition-all hover:-translate-y-0.5"
+                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                onClick={() => { sounds.click(); navigate(`/players/${p.id}`); }}>
                 <button
-                  onClick={() => removePlayer(p.id, p.name)}
+                  onClick={(e) => { e.stopPropagation(); removePlayer(p.id, p.name); }}
                   className="absolute top-3 right-3 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-150 text-xl leading-none"
                   title="Remove player"
                 >
@@ -135,6 +138,11 @@ export default function PlayersPage() {
                     <p className="text-muted">Win%</p>
                   </div>
                 </div>
+                {(p.current_streak ?? 0) > 1 && (
+                  <p className="text-xs text-orange-400 mt-2 text-center">
+                    🔥 {p.current_streak}-game win streak
+                  </p>
+                )}
               </div>
             );
           })}

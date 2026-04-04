@@ -101,6 +101,7 @@ export default function LeaderboardPage() {
                   <th className="text-right px-4 py-3">L</th>
                   <th className="text-right px-4 py-3">Win%</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">Games</th>
+                  <th className="text-right px-4 py-3 hidden md:table-cell">Streak</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,6 +131,11 @@ export default function LeaderboardPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-muted tabular-nums hidden sm:table-cell">{p.total_games}</td>
+                    <td className="px-4 py-3 text-right tabular-nums hidden md:table-cell">
+                      {(p.current_streak ?? 0) > 1
+                        ? <span className="text-orange-400 font-medium">{p.current_streak} 🔥</span>
+                        : <span className="text-faint">—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

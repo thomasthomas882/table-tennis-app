@@ -4,9 +4,55 @@ export interface Player {
   elo: number;
   wins: number;
   losses: number;
+  current_streak: number;
+  best_streak: number;
   created_at: string;
   total_games?: number;
   win_rate?: number;
+}
+
+export interface EloHistoryEntry {
+  elo: number;
+  elo_delta: number;
+  match_id: number;
+  created_at: string;
+}
+
+export interface HeadToHead {
+  opponent_id: number;
+  opponent_name: string;
+  wins: number;
+  losses: number;
+}
+
+export interface PlayerStats {
+  player: Player;
+  recentMatches: Match[];
+  headToHead: HeadToHead[];
+  eloHistory: EloHistoryEntry[];
+}
+
+export interface Series {
+  id: number;
+  player1_id: number;
+  player2_id: number;
+  player1_name: string;
+  player2_name: string;
+  format: number;
+  wins1: number;
+  wins2: number;
+  status: 'active' | 'completed';
+  winner_id: number | null;
+  winner_name: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface MatchHistoryPage {
+  matches: Match[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface QueueEntry {
