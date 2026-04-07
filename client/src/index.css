@@ -177,3 +177,21 @@
 .animate-slide-in-right { animation: slide-in-right 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 .animate-bubble-pop     { animation: bubble-pop     0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 .dragging               { animation: drag-lift 0.15s ease forwards; opacity: 0.7; }
+
+/* ─── Touch optimizations ──────────────────────────────────── */
+
+/* Prevent 300ms tap delay on buttons */
+button, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Always show hover-only interactive elements on touch devices */
+@media (hover: none) {
+  .group-hover\:opacity-100 { opacity: 1 !important; }
+}
+
+/* Scrollable nav on tiny screens */
+.nav-links-scroll {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}
