@@ -16,7 +16,6 @@ const APP_GUIDE_STEPS = [
   { icon: '🔍', title: 'Player Profiles', desc: 'Click any player card on the Players tab to open their full profile — ELO progression chart, head-to-head record vs every opponent, and their last 10 matches.' },
   { icon: '📋', title: 'Match History', desc: 'The History tab shows every completed match with dates, scores, and players. Use the filter to look up all matches for a specific person.' },
   { icon: '🔥', title: 'Win Streaks', desc: 'Win streaks are tracked automatically. Current streak and all-time best appear on player cards and the leaderboard. A 🔥 appears when a player is on a streak.' },
-  { icon: '🎯', title: 'Best-of Series', desc: 'On the Matches tab, click "+ New Series" to set up a Best-of-3, 5, or 7 series between two players. Wins count automatically as matches are completed, and the series closes when someone reaches the target.' },
 ];
 
 // ─── ELO Guide ───────────────────────────────────────────────────────────────

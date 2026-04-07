@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { sounds } from '../utils/sounds';
 import { useApp } from '../App';
 import { api } from '../api';
-import { Match, Series } from '../types';
+import { Match } from '../types';
 
 /** Parse SQLite UTC datetime string to a local Date object */
 function parseUTC(s: string) {
@@ -499,117 +499,10 @@ function CompletedMatchCard({ match }: { match: Match }) {
   );
 }
 
-function SeriesCard({ series, onCancel }: { series: Series; onCancel: () => void }) {
-  const target = Math.ceil(series.format / 2);
-  const p1PctFull = (series.wins1 / target) * 100;
-  const p2PctFull = (series.wins2 / target) * 100;
-
-  return (
-    <div className="card border-blue-500/30 bg-blue-500/5 relative">
-      <div className="flex items-center justify-between mb-3">
-        <span className="badge bg-blue-500/20 text-blue-400 border-blue-500/30">
-          Best of {series.format} Series
-        </span>
-        <button onClick={onCancel} className="text-faint hover:text-red-400 text-sm transition-colors">
-          Cancel
-        </button>
-      </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
-        <div className="text-center">
-          <p className="font-semibold truncate">{series.player1_name}</p>
-          <p className="text-4xl font-bold text-blue-400 tabular-nums mt-1">{series.wins1}</p>
-          <div className="h-1.5 rounded-full bg-input mt-2 overflow-hidden">
-            <div className="h-full rounded-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${p1PctFull}%` }} />
-          </div>
-        </div>
-        <div className="text-center text-muted font-bold text-sm">
-          <p className="text-xs text-faint">first to {target}</p>
-          <p className="text-lg mt-1">vs</p>
-        </div>
-        <div className="text-center">
-          <p className="font-semibold truncate">{series.player2_name}</p>
-          <p className="text-4xl font-bold text-purple-400 tabular-nums mt-1">{series.wins2}</p>
-          <div className="h-1.5 rounded-full bg-input mt-2 overflow-hidden">
-            <div className="h-full rounded-full bg-purple-500 transition-all duration-500"
-              style={{ width: `${p2PctFull}%` }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NewSeriesModal({ players, onClose }: { players: { id: number; name: string }[]; onClose: () => void }) {
-  const [p1, setP1] = useState('');
-  const [p2, setP2] = useState('');
-  const [format, setFormat] = useState(3);
-  const [loading, setLoading] = useState(false);
-
-  async function create() {
-    if (!p1 || !p2 || p1 === p2) return;
-    setLoading(true);
-    sounds.success();
-    try {
-      await api.createSeries(Number(p1), Number(p2), format);
-      onClose();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="flex justify-center px-4 py-20">
-        <div className="card w-full max-w-sm" onClick={e => e.stopPropagation()}>
-          <h2 className="font-bold text-lg mb-4">New Series</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted mb-1 block">Player 1</label>
-              <select value={p1} onChange={e => setP1(e.target.value)} className="input w-full">
-                <option value="">Select player…</option>
-                {players.filter(p => p.id !== Number(p2)).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted mb-1 block">Player 2</label>
-              <select value={p2} onChange={e => setP2(e.target.value)} className="input w-full">
-                <option value="">Select player…</option>
-                {players.filter(p => p.id !== Number(p1)).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted mb-1 block">Format</label>
-              <div className="flex gap-2">
-                {[3, 5, 7].map(f => (
-                  <button key={f} onClick={() => setFormat(f)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${format === f ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'border-theme text-muted hover:border-hover'}`}>
-                    Bo{f}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={create} disabled={!p1 || !p2 || p1 === p2 || loading}
-                className="btn-primary flex-1">
-                {loading ? 'Creating…' : 'Start Series'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function MatchesPage() {
-  const { activeMatches, activeSeries, players } = useApp();
+  const { activeMatches } = useApp();
   const [completed, setCompleted] = useState<Match[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [showNewSeries, setShowNewSeries] = useState(false);
 
   useEffect(() => {
     api.getMatches('completed')
@@ -618,43 +511,17 @@ export default function MatchesPage() {
       .finally(() => setLoadingHistory(false));
   }, [activeMatches]);
 
-  async function cancelSeries(id: number) {
-    sounds.cancel();
-    await api.deleteSeries(id).catch(() => {});
-  }
-
   return (
     <div className="space-y-8 animate-fade-in">
       <h1 className="text-2xl font-bold">Matches</h1>
 
-      {/* Active Series */}
-      {activeSeries.length > 0 && (
-        <section>
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            Active Series
-            <span className="badge bg-blue-500/20 text-blue-400">{activeSeries.length}</span>
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {activeSeries.map(s => (
-              <SeriesCard key={s.id} series={s} onCancel={() => cancelSeries(s.id)} />
-            ))}
-          </div>
-        </section>
-      )}
-
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-lg flex items-center gap-2">
-            Active Matches
-            {activeMatches.length > 0 && (
-              <span className="badge bg-orange-500/20 text-orange-400">{activeMatches.length}</span>
-            )}
-          </h2>
-          <button onClick={() => { sounds.click(); setShowNewSeries(true); }}
-            className="btn-secondary text-sm py-1.5 px-3">
-            + New Series
-          </button>
-        </div>
+        <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+          Active Matches
+          {activeMatches.length > 0 && (
+            <span className="badge bg-orange-500/20 text-orange-400">{activeMatches.length}</span>
+          )}
+        </h2>
         {activeMatches.length === 0 ? (
           <div className="card text-center py-12 text-muted">
             <div className="text-5xl mb-3">🏓</div>
@@ -679,10 +546,6 @@ export default function MatchesPage() {
           </div>
         )}
       </section>
-
-      {showNewSeries && (
-        <NewSeriesModal players={players} onClose={() => setShowNewSeries(false)} />
-      )}
     </div>
   );
 }

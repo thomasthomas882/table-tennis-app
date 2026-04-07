@@ -32,22 +32,6 @@ export interface PlayerStats {
   eloHistory: EloHistoryEntry[];
 }
 
-export interface Series {
-  id: number;
-  player1_id: number;
-  player2_id: number;
-  player1_name: string;
-  player2_name: string;
-  format: number;
-  wins1: number;
-  wins2: number;
-  status: 'active' | 'completed';
-  winner_id: number | null;
-  winner_name: string | null;
-  created_at: string;
-  completed_at: string | null;
-}
-
 export interface MatchHistoryPage {
   matches: Match[];
   total: number;

@@ -1,7 +1,7 @@
 import { useEffect, useState, createContext, useContext } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { socket } from './socket';
-import { Player, QueueEntry, Table, Match, Notification, Stats, Series } from './types';
+import { Player, QueueEntry, Table, Match, Notification, Stats } from './types';
 import { api } from './api';
 import Navbar from './components/Navbar';
 import NotificationToast from './components/NotificationToast';
@@ -24,7 +24,6 @@ interface AppCtx {
   queue: QueueEntry[];
   tables: Table[];
   activeMatches: Match[];
-  activeSeries: Series[];
   stats: Stats | null;
   connected: boolean;
   refreshStats: () => void;
@@ -37,7 +36,7 @@ interface AppCtx {
 }
 
 const AppContext = createContext<AppCtx>({
-  players: [], queue: [], tables: [], activeMatches: [], activeSeries: [],
+  players: [], queue: [], tables: [], activeMatches: [],
   stats: null, connected: false, refreshStats: () => {},
   theme: 'dark', setTheme: () => {},
   soundEnabled: true, setSoundEnabled: () => {},
@@ -55,7 +54,6 @@ export default function App() {
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [activeMatches, setActiveMatches] = useState<Match[]>([]);
-  const [activeSeries, setActiveSeries] = useState<Series[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [connected, setConnected] = useState(false);
@@ -113,7 +111,6 @@ export default function App() {
       setQueue(data.queue);
       setTables(data.tables);
       setActiveMatches(data.matches);
-      setActiveSeries(data.series || []);
     });
 
     socket.on('players:updated', setPlayers);
@@ -134,8 +131,6 @@ export default function App() {
       refreshStats();
     });
 
-    socket.on('series:updated', (s: Series[]) => setActiveSeries(s));
-
     socket.on('leaderboard:updated', setPlayers);
 
     socket.on('notification', pushNotification);
@@ -151,7 +146,7 @@ export default function App() {
 
   return (
     <AppContext.Provider value={{
-      players, queue, tables, activeMatches, activeSeries, stats, connected, refreshStats,
+      players, queue, tables, activeMatches, stats, connected, refreshStats,
       theme, setTheme,
       soundEnabled: soundEnabledState, setSoundEnabled: handleSetSoundEnabled,
       hideElo, setHideElo: handleSetHideElo,
