@@ -4,6 +4,7 @@ import { api } from '../api';
 import { Player, Table } from '../types';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { sounds } from '../utils/sounds';
+import { useTouchSort } from '../utils/useTouchSort';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,9 @@ interface TableCardProps {
   onCardDrop: (e: React.DragEvent) => void;
   allPlayers: Player[];
   starting: boolean;
+  // Touch tap-to-assign
+  selectedQueuePlayer: { id: number; name: string } | null;
+  onTapSide: (tableId: number, side: 'A' | 'B') => void;
 }
 
 function TableCard({
@@ -87,6 +91,7 @@ function TableCard({
   onRemovePlayer, onStartMatch, onClear,
   onCardDragStart, onCardDragOver, onCardDrop,
   allPlayers, starting,
+  selectedQueuePlayer, onTapSide,
 }: TableCardProps) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
@@ -145,15 +150,18 @@ function TableCard({
           onDragOver={isOccupied ? undefined : e => onDragOver(e, 'A')}
           onDragLeave={isOccupied ? undefined : onDragLeave}
           onDrop={isOccupied ? undefined : e => onDrop(e, 'A')}
+          onClick={selectedQueuePlayer && !isOccupied && sides.A.length < 2 ? () => onTapSide(table.id, 'A') : undefined}
           className={`absolute top-0 bottom-0 left-0 right-1/2 flex items-center justify-center transition-all duration-150 ${
             dragOverSide === 'A' && !isOccupied ? 'bg-blue-400/25' : ''
-          }`}
+          } ${selectedQueuePlayer && !isOccupied && sides.A.length < 2 ? 'cursor-pointer bg-green-400/10' : ''}`}
         >
           <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.A.length === 2 ? 'flex-row' : 'flex-col'}`}>
             {sides.A.length === 0 && !isOccupied ? (
-              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'A' ? 'opacity-100' : 'opacity-35'}`}>
+              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'A' || (selectedQueuePlayer && sides.A.length < 2) ? 'opacity-100' : 'opacity-35'}`}>
                 <span className="text-2xl">👤</span>
-                <span className="text-[10px] text-white/50 font-medium">Side A</span>
+                <span className="text-[10px] text-white/50 font-medium">
+                  {selectedQueuePlayer && sides.A.length < 2 ? `Tap to assign` : 'Side A'}
+                </span>
               </div>
             ) : (
               sides.A.map(pid => (
@@ -162,6 +170,9 @@ function TableCard({
                   onRemove={() => onRemovePlayer(pid, 'A')} compact={sides.A.length === 2}
                 />
               ))
+            )}
+            {sides.A.length > 0 && sides.A.length < 2 && selectedQueuePlayer && !isOccupied && (
+              <span className="text-[9px] text-green-400 font-medium">Tap to assign</span>
             )}
           </div>
           {dragOverSide === 'A' && !isOccupied && (
@@ -176,15 +187,18 @@ function TableCard({
           onDragOver={isOccupied ? undefined : e => onDragOver(e, 'B')}
           onDragLeave={isOccupied ? undefined : onDragLeave}
           onDrop={isOccupied ? undefined : e => onDrop(e, 'B')}
+          onClick={selectedQueuePlayer && !isOccupied && sides.B.length < 2 ? () => onTapSide(table.id, 'B') : undefined}
           className={`absolute top-0 bottom-0 right-0 left-1/2 flex items-center justify-center transition-all duration-150 ${
             dragOverSide === 'B' && !isOccupied ? 'bg-purple-400/25' : ''
-          }`}
+          } ${selectedQueuePlayer && !isOccupied && sides.B.length < 2 ? 'cursor-pointer bg-green-400/10' : ''}`}
         >
           <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.B.length === 2 ? 'flex-row' : 'flex-col'}`}>
             {sides.B.length === 0 && !isOccupied ? (
-              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'B' ? 'opacity-100' : 'opacity-35'}`}>
+              <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'B' || (selectedQueuePlayer && sides.B.length < 2) ? 'opacity-100' : 'opacity-35'}`}>
                 <span className="text-2xl">👤</span>
-                <span className="text-[10px] text-white/50 font-medium">Side B</span>
+                <span className="text-[10px] text-white/50 font-medium">
+                  {selectedQueuePlayer && sides.B.length < 2 ? `Tap to assign` : 'Side B'}
+                </span>
               </div>
             ) : (
               sides.B.map(pid => (
@@ -193,6 +207,9 @@ function TableCard({
                   onRemove={() => onRemovePlayer(pid, 'B')} compact={sides.B.length === 2}
                 />
               ))
+            )}
+            {sides.B.length > 0 && sides.B.length < 2 && selectedQueuePlayer && !isOccupied && (
+              <span className="text-[9px] text-green-400 font-medium">Tap to assign</span>
             )}
           </div>
           {dragOverSide === 'B' && !isOccupied && (
@@ -239,6 +256,17 @@ function TableCard({
 export default function QueuePage() {
   const { players, queue, tables, activeMatches, hideElo } = useApp();
 
+  // ── Touch device detection ─────────────────────────────────────
+  const isTouchDevice = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
+  );
+
+  // ── Touch tap-to-assign state ──────────────────────────────────
+  const [selectedQueuePlayer, setSelectedQueuePlayer] = useState<{ id: number; name: string } | null>(null);
+
+  // ── Queue list ref for touch sort ─────────────────────────────
+  const queueListRef = useRef<HTMLOListElement>(null);
+
   // ── Local ordered tables (optimistic reorder) ──────────────────
   const [localTableIds, setLocalTableIds] = useState<number[]>([]);
   useEffect(() => {
@@ -282,6 +310,43 @@ export default function QueuePage() {
 
   // Players who can be added to queue (not queued, not active)
   const availableForQueue = players.filter(p => !queuedIds.has(p.id) && !activeIds.has(p.id));
+
+  // ── Touch sort for queue ───────────────────────────────────────
+  const { getTouchHandlers } = useTouchSort({
+    containerRef: queueListRef as React.RefObject<HTMLElement | null>,
+    onReorder: (fromIdx, toIdx) => {
+      sounds.tick();
+      const newOrder = [...queue];
+      const [moved] = newOrder.splice(fromIdx, 1);
+      newOrder.splice(toIdx, 0, moved);
+      api.reorderQueue(newOrder.map(q => q.player_id)).catch(() => {});
+    },
+  });
+
+  // ── Touch tap-to-assign handler ────────────────────────────────
+  function handleTapQueueItem(playerId: number, playerName: string) {
+    if (!isTouchDevice.current) return;
+    if (selectedQueuePlayer?.id === playerId) {
+      setSelectedQueuePlayer(null);
+    } else {
+      setSelectedQueuePlayer({ id: playerId, name: playerName });
+    }
+  }
+
+  function handleTapSide(tableId: number, side: 'A' | 'B') {
+    if (!selectedQueuePlayer) return;
+    const pid = selectedQueuePlayer.id;
+    const curr = assignments[tableId] ?? { A: [], B: [] };
+    const other = side === 'A' ? 'B' : 'A';
+    if (curr[side].includes(pid) || curr[other].includes(pid) || curr[side].length >= 2) return;
+
+    sounds.drop();
+    setAssignments(prev => ({
+      ...prev,
+      [tableId]: { ...curr, [side]: [...curr[side], pid] },
+    }));
+    setSelectedQueuePlayer(null);
+  }
 
   // ── Queue actions ──────────────────────────────────────────────
 
@@ -457,7 +522,9 @@ export default function QueuePage() {
       <div>
         <h1 className="text-2xl font-bold">Match Queue & Tables</h1>
         <p className="text-secondary text-sm mt-1">
-          Drag players onto table sides to assign them, then press Start Match. Drag ⠿ to reorder.
+          {isTouchDevice.current
+            ? 'Tap a player to select, then tap a table side to assign.'
+            : 'Drag players onto table sides to assign them, then press Start Match. Drag ⠿ to reorder.'}
         </p>
       </div>
 
@@ -484,11 +551,12 @@ export default function QueuePage() {
                 <p className="text-sm">Queue is empty — add players below</p>
               </div>
             ) : (
-              <ol className="space-y-1.5">
+              <ol ref={queueListRef} className="space-y-1.5">
                 {queue.map((entry, i) => {
                   const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
                   const isStaged = stagedIds.has(entry.player_id);
+                  const isSelected = selectedQueuePlayer?.id === entry.player_id;
                   const stagedOnTable = isStaged
                     ? tables.find(t => {
                         const s = assignments[t.id];
@@ -499,14 +567,17 @@ export default function QueuePage() {
                   return (
                     <li
                       key={entry.id}
+                      data-touch-sort-item
                       draggable
                       onDragStart={e => handleQueueDragStart(e, entry.player_id)}
                       onDragOver={e => handleQueueItemDragOver(e, entry.player_id)}
                       onDragLeave={() => setDragOverQueueId(null)}
                       onDrop={e => handleQueueItemDrop(e, entry.player_id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+                      {...getTouchHandlers(i)}
+                      onClick={() => handleTapQueueItem(entry.player_id, entry.name)}
+                      className={`flex items-center gap-3 p-3 min-h-[52px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
-                      } ${isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
+                      } ${isSelected ? 'border-green-400 ring-2 ring-green-400/50 bg-green-500/10' : isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
                         isStaged ? 'opacity-70' : ''
                       }`}
                     >
@@ -533,6 +604,13 @@ export default function QueuePage() {
                   );
                 })}
               </ol>
+            )}
+
+            {/* Touch tap-to-assign helper text */}
+            {selectedQueuePlayer && (
+              <p className="text-xs text-green-400 font-medium text-center py-1 animate-slide-up">
+                "{selectedQueuePlayer.name}" selected — tap a table side to assign
+              </p>
             )}
 
             {/* Add to queue */}
@@ -597,6 +675,8 @@ export default function QueuePage() {
                     onCardDrop={e => handleTableCardDrop(e, table.id)}
                     allPlayers={players}
                     starting={starting === table.id}
+                    selectedQueuePlayer={selectedQueuePlayer}
+                    onTapSide={handleTapSide}
                   />
                 );
               })}

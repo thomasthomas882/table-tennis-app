@@ -396,9 +396,9 @@ function ActiveMatchCard({ match }: { match: Match }) {
           <ScoreDisplay value={p1Score} flash={p1Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
             <button onClick={() => { sounds.scoreDown(); setP1Score(s => Math.max(0, s - 1)); }}
-              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
+              className="w-9 h-9 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
             <button onClick={() => { sounds.scoreUp(); setP1Score(s => s + 1); }}
-              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
+              className="w-9 h-9 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
 
@@ -413,9 +413,9 @@ function ActiveMatchCard({ match }: { match: Match }) {
           <ScoreDisplay value={p2Score} flash={p2Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
             <button onClick={() => { sounds.scoreDown(); setP2Score(s => Math.max(0, s - 1)); }}
-              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
+              className="w-9 h-9 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">−</button>
             <button onClick={() => { sounds.scoreUp(); setP2Score(s => s + 1); }}
-              className="w-7 h-7 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
+              className="w-9 h-9 rounded-lg bg-card border border-theme hover:border-hover font-bold transition-colors text-sm">+</button>
           </div>
         </div>
       </div>

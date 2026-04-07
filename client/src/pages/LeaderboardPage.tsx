@@ -90,7 +90,7 @@ export default function LeaderboardPage() {
           )}
 
           {/* Full table */}
-          <div className="rounded-xl border border-theme overflow-hidden">
+          <div className="overflow-x-auto rounded-xl border border-theme">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-input border-b border-theme text-secondary text-xs">

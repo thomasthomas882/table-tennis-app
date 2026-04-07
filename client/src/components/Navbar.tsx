@@ -47,8 +47,8 @@ export default function Navbar({ connected }: { connected: boolean }) {
           </span>
         </div>
 
-        {/* Nav links — centered with flex-1 */}
-        <div className="flex items-center gap-0.5 flex-1 justify-center">
+        {/* Nav links — centered with flex-1, scrollable on tiny screens */}
+        <div className="nav-links-scroll flex items-center gap-0.5 flex-1 justify-center overflow-x-auto">
           {links.map(({ to, label, icon }) => (
             <NavLink
               key={to}
@@ -56,7 +56,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
               end={to === '/'}
               onClick={() => sounds.click()}
               className={({ isActive }) =>
-                `relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                `relative flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-green-500/15 text-green-400'
                     : 'text-muted hover:text-primary hover:bg-white/5'
