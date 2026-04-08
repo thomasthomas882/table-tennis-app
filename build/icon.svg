@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Dark navy background circle with green accent ring -->
+  <circle cx="128" cy="128" r="126" fill="#22c55e"/>
+  <circle cx="128" cy="128" r="122" fill="#0f172a"/>
+
+  <!-- Ping pong paddle (ellipse, angled -20 degrees) -->
+  <!-- Paddle face: orange/red ellipse rotated -20 degrees -->
+  <g transform="translate(112, 118) rotate(-20)">
+    <!-- Paddle rubber face -->
+    <ellipse cx="0" cy="0" rx="58" ry="68" fill="#ef4444"/>
+    <!-- Paddle edge highlight -->
+    <ellipse cx="0" cy="0" rx="58" ry="68" fill="none" stroke="#dc2626" stroke-width="3"/>
+    <!-- Paddle surface detail - subtle lines -->
+    <line x1="-45" y1="-20" x2="45" y2="-20" stroke="#dc2626" stroke-width="1.5" opacity="0.5"/>
+    <line x1="-50" y1="0" x2="50" y2="0" stroke="#dc2626" stroke-width="1.5" opacity="0.5"/>
+    <line x1="-45" y1="20" x2="45" y2="20" stroke="#dc2626" stroke-width="1.5" opacity="0.5"/>
+    <!-- Paddle grip hole area -->
+    <ellipse cx="0" cy="0" rx="30" ry="35" fill="none" stroke="#f87171" stroke-width="1" opacity="0.4"/>
+  </g>
+
+  <!-- Brown handle -->
+  <g transform="translate(128, 128) rotate(-20)">
+    <!-- Handle body -->
+    <rect x="-12" y="64" width="24" height="62" rx="7" fill="#92400e"/>
+    <!-- Handle grain detail -->
+    <rect x="-12" y="64" width="24" height="62" rx="7" fill="none" stroke="#78350f" stroke-width="2"/>
+    <line x1="-8" y1="74" x2="8" y2="74" stroke="#78350f" stroke-width="1" opacity="0.6"/>
+    <line x1="-9" y1="84" x2="9" y2="84" stroke="#78350f" stroke-width="1" opacity="0.6"/>
+    <line x1="-9" y1="94" x2="9" y2="94" stroke="#78350f" stroke-width="1" opacity="0.6"/>
+    <line x1="-9" y1="104" x2="9" y2="104" stroke="#78350f" stroke-width="1" opacity="0.6"/>
+    <line x1="-8" y1="114" x2="8" y2="114" stroke="#78350f" stroke-width="1" opacity="0.6"/>
+  </g>
+
+  <!-- White ping pong ball in upper right -->
+  <circle cx="190" cy="68" r="24" fill="white"/>
+  <!-- Ball shadow/depth -->
+  <circle cx="190" cy="68" r="24" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+  <!-- Ball seam line -->
+  <path d="M 170 60 Q 190 72 210 60" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>
+  <path d="M 170 76 Q 190 64 210 76" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>
+  <!-- Ball highlight -->
+  <circle cx="183" cy="60" r="7" fill="white" opacity="0.8"/>
+</svg>

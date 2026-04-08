@@ -27,6 +27,7 @@
       "client/dist/**"
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": "nsis",
       "requestedExecutionLevel": "asInvoker"
     },
@@ -40,6 +41,8 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^34.0.0",
-    "electron-builder": "^25.0.0"
+    "electron-builder": "^25.0.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5"
   }
 }
