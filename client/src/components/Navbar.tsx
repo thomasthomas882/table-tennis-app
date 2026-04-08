@@ -35,7 +35,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
 
   return (
     <nav className="bg-nav backdrop-blur-sm border-b border-theme sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 flex items-center h-14 gap-3">
+      <div className="max-w-7xl mx-auto px-4 flex items-center h-16 gap-3">
         {/* Logo */}
         <div className="flex items-center gap-2 font-bold text-lg flex-shrink-0">
           <span className="text-2xl">🏓</span>
@@ -48,7 +48,7 @@ export default function Navbar({ connected }: { connected: boolean }) {
         </div>
 
         {/* Nav links — centered with flex-1, scrollable on tiny screens */}
-        <div className="nav-links-scroll flex items-center gap-0.5 flex-1 justify-center overflow-x-auto">
+        <div className="nav-links-scroll flex items-center gap-0.5 flex-1 justify-center overflow-x-auto overflow-y-visible py-2">
           {links.map(({ to, label, icon }) => (
             <NavLink
               key={to}
