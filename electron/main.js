@@ -2,10 +2,20 @@ const { app, BrowserWindow } = require('electron');
 const { fork } = require('child_process');
 const path = require('path');
 const net = require('net');
+const fs = require('fs');
 
 const PORT = 3001;
 let serverProcess = null;
 let mainWindow = null;
+let logFile = null;
+
+function log(...args) {
+  const line = `[${new Date().toISOString()}] ${args.join(' ')}\n`;
+  console.log(line.trim());
+  if (logFile) {
+    try { fs.appendFileSync(logFile, line); } catch (_) {}
+  }
+}
 
 // Poll until the Express server is accepting connections
 function waitForServer(port, timeout = 20000) {
@@ -25,18 +35,31 @@ function waitForServer(port, timeout = 20000) {
 
 function startServer() {
   const serverEntry = path.join(__dirname, '../server/index.js');
-  // Store the database in the user's AppData folder so it survives app updates
-  // and doesn't require admin rights to write.
   const dbPath = path.join(app.getPath('userData'), 'tabletennis.db');
+
+  log('Starting server...');
+  log('serverEntry:', serverEntry);
+  log('dbPath:', dbPath);
+  log('process.execPath:', process.execPath);
 
   serverProcess = fork(serverEntry, [], {
     execArgv: ['--experimental-sqlite'],
-    env: { ...process.env, PORT: String(PORT), DB_PATH: dbPath },
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '1',
+      PORT: String(PORT),
+      DB_PATH: dbPath,
+    },
     cwd: path.join(__dirname, '../server'),
+    silent: true,
   });
 
-  serverProcess.on('error', (err) => console.error('[server]', err));
-  serverProcess.on('exit', (code) => console.log('[server] exited with code', code));
+  serverProcess.stdout.on('data', d => log('[server]', d.toString().trim()));
+  serverProcess.stderr.on('data', d => log('[server stderr]', d.toString().trim()));
+  serverProcess.on('error', err => log('[server error]', err.message));
+  serverProcess.on('exit', (code, signal) => log('[server exit] code:', code, 'signal:', signal));
+
+  log('Server process spawned, PID:', serverProcess.pid);
 }
 
 async function createWindow() {
@@ -53,17 +76,27 @@ async function createWindow() {
     },
   });
 
-  // Hide the native menu bar (the app has its own navbar)
   mainWindow.setMenuBarVisibility(false);
 
+  log('Waiting for server on port', PORT);
   try {
     await waitForServer(PORT);
+    log('Server is up - loading URL');
     await mainWindow.loadURL(`http://localhost:${PORT}`);
+    log('URL loaded successfully');
   } catch (err) {
-    // Show a friendly error page if the server never came up
+    log('FATAL:', err.message);
+    const safeLog = logFile ? logFile.replace(/\\/g, '/') : 'unknown';
     mainWindow.loadURL(`data:text/html,
-      <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#e2e8f0}</style>
-      <h2>Could not start PingTrack server. Please restart the app.</h2>
+      <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center;
+               justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #e2e8f0; gap: 12px; }
+        code { background: #1e293b; padding: 4px 10px; border-radius: 4px; font-size: 13px; }
+      </style>
+      <h2>Could not start PingTrack server.</h2>
+      <p>Check the log file for details:</p>
+      <code>${safeLog}</code>
+      <p>Then restart the app.</p>
     `);
   }
 
@@ -71,6 +104,15 @@ async function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const userDataPath = app.getPath('userData');
+  logFile = path.join(userDataPath, 'pingtrack-debug.log');
+  try {
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(logFile, '');
+  } catch (_) {}
+  log('=== PingTrack starting ===');
+  log('userData:', userDataPath);
+
   startServer();
   createWindow();
 });
