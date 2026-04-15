@@ -14,7 +14,7 @@ type Assignments = { [tableId: number]: TableSides }
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
 function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  const sz = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm';
+  const sz = size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base';
   return (
     <div className={`${sz} rounded-full bg-gradient-to-br from-green-500/30 to-green-700/20 border border-green-500/30 flex items-center justify-center text-green-400 font-bold flex-shrink-0`}>
       {name[0].toUpperCase()}
@@ -33,8 +33,8 @@ function PlayerBubbleOnTable({
   const player = allPlayers.find(p => p.id === playerId);
   if (!player) return null;
 
-  const ring = compact ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm';
-  const label = compact ? 'text-[9px] max-w-[38px]' : 'text-[10px] max-w-[52px]';
+  const ring = compact ? 'w-11 h-11 text-sm' : 'w-12 h-12 text-base';
+  const label = compact ? 'text-[10px] max-w-[48px]' : 'text-xs max-w-[60px]';
 
   return (
     <div
@@ -128,7 +128,7 @@ function TableCard({
 
       {/* Table surface */}
       <div
-        className={`relative rounded-xl overflow-hidden h-36 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
+        className={`relative rounded-xl overflow-hidden h-48 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
         style={{ background: 'linear-gradient(160deg, #064e3b 0%, #065f46 50%, #047857 100%)' }}
       >
         {/* Boundary lines */}
@@ -551,7 +551,7 @@ export default function QueuePage() {
                 <p className="text-sm">Queue is empty — add players below</p>
               </div>
             ) : (
-              <ol ref={queueListRef} className="space-y-1.5">
+              <ol ref={queueListRef} className="space-y-2">
                 {queue.map((entry, i) => {
                   const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
@@ -575,20 +575,20 @@ export default function QueuePage() {
                       onDrop={e => handleQueueItemDrop(e, entry.player_id)}
                       {...getTouchHandlers(i)}
                       onClick={() => handleTapQueueItem(entry.player_id, entry.name)}
-                      className={`flex items-center gap-3 p-3 min-h-[52px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+                      className={`flex items-center gap-3 p-4 min-h-[64px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
                       } ${isSelected ? 'border-green-400 ring-2 ring-green-400/50 bg-green-500/10' : isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
                         isStaged ? 'opacity-70' : ''
                       }`}
                     >
                       <span className="text-muted text-base leading-none select-none cursor-grab">⠿</span>
-                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-card border border-theme text-secondary">
+                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 bg-card border border-theme text-secondary">
                         {i + 1}
                       </span>
                       <Avatar name={entry.name} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{entry.name}</p>
-                        <p className="text-xs text-muted">
+                        <p className="font-medium text-base truncate">{entry.name}</p>
+                        <p className="text-sm text-muted">
                           {!hideElo && <>ELO {entry.elo}</>}
                           {stagedOnTable && (
                             <span className="ml-2 text-blue-400">📍 {stagedOnTable.name}</span>
