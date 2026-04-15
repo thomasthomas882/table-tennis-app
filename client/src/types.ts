@@ -2,8 +2,11 @@ export interface Player {
   id: number;
   name: string;
   elo: number;
+  elo_doubles: number;
   wins: number;
   losses: number;
+  doubles_wins: number;
+  doubles_losses: number;
   current_streak: number;
   best_streak: number;
   created_at: string;
@@ -16,6 +19,7 @@ export interface EloHistoryEntry {
   elo_delta: number;
   match_id: number;
   created_at: string;
+  rating_type: 'singles' | 'doubles';
 }
 
 export interface HeadToHead {
@@ -30,6 +34,7 @@ export interface PlayerStats {
   recentMatches: Match[];
   headToHead: HeadToHead[];
   eloHistory: EloHistoryEntry[];
+  eloHistoryDoubles: EloHistoryEntry[];
 }
 
 export interface MatchHistoryPage {

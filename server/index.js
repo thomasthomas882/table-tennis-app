@@ -297,10 +297,14 @@ app.get('/api/players/:id/stats', (req, res) => {
   const headToHead = Object.values(h2hMap).sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses));
 
   const eloHistory = db.prepare(
-    'SELECT elo, elo_delta, match_id, created_at FROM elo_history WHERE player_id = ? ORDER BY created_at ASC'
+    "SELECT elo, elo_delta, match_id, created_at, rating_type FROM elo_history WHERE player_id = ? AND rating_type = 'singles' ORDER BY created_at ASC"
   ).all(pid);
 
-  res.json({ player, recentMatches, headToHead, eloHistory });
+  const eloHistoryDoubles = db.prepare(
+    "SELECT elo, elo_delta, match_id, created_at, rating_type FROM elo_history WHERE player_id = ? AND rating_type = 'doubles' ORDER BY created_at ASC"
+  ).all(pid);
+
+  res.json({ player, recentMatches, headToHead, eloHistory, eloHistoryDoubles });
 });
 
 // Player ELO history
@@ -388,41 +392,66 @@ app.post('/api/matches/:id/complete', (req, res) => {
     return res.status(400).json({ error: 'Winner must be a match participant' });
   }
 
+  const isDoubles = !!(match.player3_id || match.player4_id);
+
   const winnerPlayers = winnerIds.map(id => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
   const loserPlayers  = loserIds.map(id  => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
 
-  const avgWinnerElo     = Math.round(winnerPlayers.reduce((s, p) => s + p.elo, 0) / winnerPlayers.length);
-  const avgLoserElo      = Math.round(loserPlayers.reduce((s, p)  => s + p.elo, 0)  / loserPlayers.length);
+  const eloField = isDoubles ? 'elo_doubles' : 'elo';
+  const matchField = isDoubles ? 'doubles_wins + doubles_losses' : 'wins + losses';
+  const avgWinnerElo     = Math.round(winnerPlayers.reduce((s, p) => s + p[eloField], 0) / winnerPlayers.length);
+  const avgLoserElo      = Math.round(loserPlayers.reduce((s, p)  => s + p[eloField], 0)  / loserPlayers.length);
   const avgWinnerMatches = Math.round(winnerPlayers.reduce((s, p) => s + p.wins + p.losses, 0) / winnerPlayers.length);
   const avgLoserMatches  = Math.round(loserPlayers.reduce((s, p)  => s + p.wins + p.losses, 0)  / loserPlayers.length);
   const { winnerDelta, loserDelta } = calculateNewRatings(avgWinnerElo, avgLoserElo, avgWinnerMatches, avgLoserMatches);
 
   const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
+  const ratingType = isDoubles ? 'doubles' : 'singles';
 
   db.exec('BEGIN');
   try {
     db.prepare(`UPDATE matches SET status = 'completed', winner_id = ?, completed_at = datetime('now') WHERE id = ?`)
       .run(winner_id, match.id);
 
-    // Update ELO, wins/losses, streaks, and record ELO history for each player
-    winnerIds.forEach(id => {
-      const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
-      const newElo = p.elo + winnerDelta;
-      const newStreak = (p.current_streak >= 0 ? p.current_streak : 0) + 1;
-      const newBest = Math.max(p.best_streak, newStreak);
-      db.prepare('UPDATE players SET wins = wins + 1, elo = ?, current_streak = ?, best_streak = ? WHERE id = ?')
-        .run(newElo, newStreak, newBest, id);
-      db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id) VALUES (?, ?, ?, ?)')
-        .run(id, newElo, winnerDelta, match.id);
-    });
-    loserIds.forEach(id => {
-      const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
-      const newElo = p.elo + loserDelta;
-      db.prepare('UPDATE players SET losses = losses + 1, elo = ?, current_streak = 0 WHERE id = ?')
-        .run(newElo, id);
-      db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id) VALUES (?, ?, ?, ?)')
-        .run(id, newElo, loserDelta, match.id);
-    });
+    if (isDoubles) {
+      // Doubles: update elo_doubles, doubles_wins/losses only (no streak tracking)
+      winnerIds.forEach(id => {
+        const p = db.prepare('SELECT elo_doubles FROM players WHERE id = ?').get(id);
+        const newElo = p.elo_doubles + winnerDelta;
+        db.prepare('UPDATE players SET doubles_wins = doubles_wins + 1, elo_doubles = ? WHERE id = ?')
+          .run(newElo, id);
+        db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
+          .run(id, newElo, winnerDelta, match.id, 'doubles');
+      });
+      loserIds.forEach(id => {
+        const p = db.prepare('SELECT elo_doubles FROM players WHERE id = ?').get(id);
+        const newElo = p.elo_doubles + loserDelta;
+        db.prepare('UPDATE players SET doubles_losses = doubles_losses + 1, elo_doubles = ? WHERE id = ?')
+          .run(newElo, id);
+        db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
+          .run(id, newElo, loserDelta, match.id, 'doubles');
+      });
+    } else {
+      // Singles: update elo, wins/losses, and streaks
+      winnerIds.forEach(id => {
+        const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
+        const newElo = p.elo + winnerDelta;
+        const newStreak = (p.current_streak >= 0 ? p.current_streak : 0) + 1;
+        const newBest = Math.max(p.best_streak, newStreak);
+        db.prepare('UPDATE players SET wins = wins + 1, elo = ?, current_streak = ?, best_streak = ? WHERE id = ?')
+          .run(newElo, newStreak, newBest, id);
+        db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
+          .run(id, newElo, winnerDelta, match.id, 'singles');
+      });
+      loserIds.forEach(id => {
+        const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
+        const newElo = p.elo + loserDelta;
+        db.prepare('UPDATE players SET losses = losses + 1, elo = ?, current_streak = 0 WHERE id = ?')
+          .run(newElo, id);
+        db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
+          .run(id, newElo, loserDelta, match.id, 'singles');
+      });
+    }
 
     if (match.table_id) {
       db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
@@ -480,13 +509,25 @@ app.delete('/api/matches/:id', (req, res) => {
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
 
 app.get('/api/leaderboard', (req, res) => {
-  res.json(db.prepare(`
-    SELECT *, (wins + losses) as total_games,
-    CASE WHEN (wins + losses) > 0 THEN ROUND(wins * 100.0 / (wins + losses), 1) ELSE 0 END as win_rate
-    FROM players
-    WHERE (wins + losses) > 0
-    ORDER BY elo DESC
-  `).all());
+  const type = req.query.type === 'doubles' ? 'doubles' : 'singles';
+  if (type === 'doubles') {
+    res.json(db.prepare(`
+      SELECT *, elo_doubles as elo,
+        (doubles_wins + doubles_losses) as total_games,
+        CASE WHEN (doubles_wins + doubles_losses) > 0 THEN ROUND(doubles_wins * 100.0 / (doubles_wins + doubles_losses), 1) ELSE 0 END as win_rate
+      FROM players
+      WHERE (doubles_wins + doubles_losses) > 0
+      ORDER BY elo_doubles DESC
+    `).all());
+  } else {
+    res.json(db.prepare(`
+      SELECT *, (wins + losses) as total_games,
+      CASE WHEN (wins + losses) > 0 THEN ROUND(wins * 100.0 / (wins + losses), 1) ELSE 0 END as win_rate
+      FROM players
+      WHERE (wins + losses) > 0
+      ORDER BY elo DESC
+    `).all());
+  }
 });
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
@@ -503,7 +544,7 @@ app.get('/api/stats', (req, res) => {
 // ─── Reset ELO only ──────────────────────────────────────────────────────────
 
 app.post('/api/reset-elo', (req, res) => {
-  db.exec('UPDATE players SET elo = 1000, current_streak = 0, best_streak = 0');
+  db.exec('UPDATE players SET elo = 1000, elo_doubles = 1000, wins = 0, losses = 0, doubles_wins = 0, doubles_losses = 0, current_streak = 0, best_streak = 0');
   db.exec('DELETE FROM elo_history');
   const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
   broadcast('players:updated', players);

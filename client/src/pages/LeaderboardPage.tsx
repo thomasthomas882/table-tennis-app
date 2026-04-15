@@ -28,15 +28,21 @@ export default function LeaderboardPage() {
   const { hideElo } = useApp();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'singles' | 'doubles'>('singles');
 
   useEffect(() => {
-    api.getLeaderboard()
+    setLoading(true);
+    api.getLeaderboard(tab)
       .then(p => setPlayers(p as Player[]))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [tab]);
 
   const maxElo = players[0]?.elo ?? 1000;
+  const isDoubles = tab === 'doubles';
+
+  const wins = (p: Player) => isDoubles ? p.doubles_wins : p.wins;
+  const losses = (p: Player) => isDoubles ? p.doubles_losses : p.losses;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -45,6 +51,22 @@ export default function LeaderboardPage() {
         <p className="text-secondary text-sm mt-1">
           {hideElo ? 'ELO scores are hidden — toggle in Settings.' : 'Ranked by ELO rating (TTR-style). Starting at 1000.'}
         </p>
+      </div>
+
+      {/* Singles / Doubles tab toggle */}
+      <div className="flex gap-1 bg-input p-1 rounded-lg w-fit border border-theme">
+        <button
+          onClick={() => setTab('singles')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === 'singles' ? 'bg-green-600 text-white' : 'text-secondary hover:text-primary'}`}
+        >
+          Singles
+        </button>
+        <button
+          onClick={() => setTab('doubles')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === 'doubles' ? 'bg-green-600 text-white' : 'text-secondary hover:text-primary'}`}
+        >
+          Doubles
+        </button>
       </div>
 
       {loading ? (
@@ -56,8 +78,8 @@ export default function LeaderboardPage() {
       ) : players.length === 0 ? (
         <div className="card text-center py-14 animate-pop-in">
           <p className="text-5xl mb-3">🏆</p>
-          <p className="text-secondary">No ranked players yet.</p>
-          <p className="text-muted text-sm mt-1">Complete some matches to build the rankings!</p>
+          <p className="text-secondary">No {isDoubles ? 'doubles' : 'singles'} ranked players yet.</p>
+          <p className="text-muted text-sm mt-1">Complete some {isDoubles ? 'doubles' : ''} matches to build the rankings!</p>
         </div>
       ) : (
         <>
@@ -79,7 +101,7 @@ export default function LeaderboardPage() {
                     <span className="text-2xl">{medals[rank - 1]}</span>
                     <p className="font-bold text-sm mt-1 text-center truncate w-full px-2">{p.name}</p>
                     {!hideElo && <p className="text-green-400 font-bold">{p.elo}</p>}
-                    <p className="text-xs text-muted">{p.wins}W – {p.losses}L</p>
+                    <p className="text-xs text-muted">{wins(p)}W – {losses(p)}L</p>
                     {rank === 1 && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-3xl animate-bounce">👑</div>
                     )}
@@ -101,7 +123,7 @@ export default function LeaderboardPage() {
                   <th className="text-right px-4 py-3">L</th>
                   <th className="text-right px-4 py-3">Win%</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">Games</th>
-                  <th className="text-right px-4 py-3 hidden md:table-cell">Streak</th>
+                  {!isDoubles && <th className="text-right px-4 py-3 hidden md:table-cell">Streak</th>}
                 </tr>
               </thead>
               <tbody>
@@ -123,19 +145,21 @@ export default function LeaderboardPage() {
                       </div>
                     </td>
                     {!hideElo && <td className="px-4 py-3 text-right font-bold text-green-400 tabular-nums">{p.elo}</td>}
-                    <td className="px-4 py-3 text-right text-green-300 tabular-nums">{p.wins}</td>
-                    <td className="px-4 py-3 text-right text-red-400 tabular-nums">{p.losses}</td>
+                    <td className="px-4 py-3 text-right text-green-300 tabular-nums">{wins(p)}</td>
+                    <td className="px-4 py-3 text-right text-red-400 tabular-nums">{losses(p)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       <span className={`font-medium ${(p.win_rate ?? 0) >= 50 ? 'text-green-400' : 'text-secondary'}`}>
                         {p.win_rate}%
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-muted tabular-nums hidden sm:table-cell">{p.total_games}</td>
-                    <td className="px-4 py-3 text-right tabular-nums hidden md:table-cell">
-                      {(p.current_streak ?? 0) > 1
-                        ? <span className="text-orange-400 font-medium">{p.current_streak} 🔥</span>
-                        : <span className="text-faint">—</span>}
-                    </td>
+                    {!isDoubles && (
+                      <td className="px-4 py-3 text-right tabular-nums hidden md:table-cell">
+                        {(p.current_streak ?? 0) > 1
+                          ? <span className="text-orange-400 font-medium">{p.current_streak} 🔥</span>
+                          : <span className="text-faint">—</span>}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

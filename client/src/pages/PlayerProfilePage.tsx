@@ -12,12 +12,11 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
   if (history.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-muted text-sm">
-        No ELO history yet — play some matches!
+        No history yet — play some matches!
       </div>
     );
   }
 
-  // Build data points: start at 1000 (before first match), then each entry
   const startElo = history[0].elo - history[0].elo_delta;
   const points = [{ elo: startElo, label: 'Start' }, ...history.map((e, i) => ({ elo: e.elo, label: `#${i + 1}` }))];
 
@@ -34,13 +33,10 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
   const x = (i: number) => padL + (i / (points.length - 1)) * chartW;
   const y = (elo: number) => padT + (1 - (elo - minElo) / range) * chartH;
 
-  // Build SVG path
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.elo).toFixed(1)}`).join(' ');
   const fillD = `${pathD} L ${x(points.length - 1).toFixed(1)} ${(padT + chartH).toFixed(1)} L ${padL} ${(padT + chartH).toFixed(1)} Z`;
 
-  // Y-axis labels
   const yLabels = [minElo + 20, Math.round((minElo + maxElo) / 2), maxElo - 20];
-
   const lastY = y(points[points.length - 1].elo);
   const lastX = x(points.length - 1);
 
@@ -52,22 +48,14 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
           <stop offset="100%" stopColor="#22c55e" stopOpacity="0.02" />
         </linearGradient>
       </defs>
-
-      {/* Y grid lines */}
       {yLabels.map(v => (
         <g key={v}>
           <line x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} stroke="currentColor" strokeOpacity="0.08" strokeWidth="1" />
           <text x={padL - 4} y={y(v)} textAnchor="end" dominantBaseline="middle" fontSize="9" fill="currentColor" fillOpacity="0.4">{v}</text>
         </g>
       ))}
-
-      {/* Fill */}
       <path d={fillD} fill="url(#eloFill)" />
-
-      {/* Line */}
       <path d={pathD} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-
-      {/* Data points */}
       {points.map((p, i) => {
         const isLast = i === points.length - 1;
         return (
@@ -78,8 +66,6 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
           />
         );
       })}
-
-      {/* Current ELO label */}
       <text x={lastX + 5} y={lastY} fontSize="10" fill="#4ade80" dominantBaseline="middle">{currentElo}</text>
     </svg>
   );
@@ -122,6 +108,7 @@ export default function PlayerProfilePage() {
   const { hideElo } = useApp();
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
 
   useEffect(() => {
     if (!id) return;
@@ -146,10 +133,15 @@ export default function PlayerProfilePage() {
 
   if (!stats) return null;
 
-  const { player, recentMatches, headToHead, eloHistory } = stats;
-  const totalGames = player.wins + player.losses;
-  const winRate = totalGames > 0 ? Math.round((player.wins / totalGames) * 100) : null;
-  const eloDelta = eloHistory.length > 0 ? player.elo - (eloHistory[0].elo - eloHistory[0].elo_delta) : 0;
+  const { player, recentMatches, headToHead, eloHistory, eloHistoryDoubles } = stats;
+
+  const singlesGames = player.wins + player.losses;
+  const doublesGames = (player.doubles_wins ?? 0) + (player.doubles_losses ?? 0);
+  const singlesWinRate = singlesGames > 0 ? Math.round((player.wins / singlesGames) * 100) : null;
+  const doublesWinRate = doublesGames > 0 ? Math.round(((player.doubles_wins ?? 0) / doublesGames) * 100) : null;
+
+  const singlesEloDelta = eloHistory.length > 0 ? player.elo - (eloHistory[0].elo - eloHistory[0].elo_delta) : 0;
+  const doublesEloDelta = eloHistoryDoubles.length > 0 ? player.elo_doubles - (eloHistoryDoubles[0].elo - eloHistoryDoubles[0].elo_delta) : 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -167,37 +159,45 @@ export default function PlayerProfilePage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate">{player.name}</h1>
             <p className="text-muted text-sm mt-0.5">Member since {new Date(player.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}</p>
-            <div className="flex flex-wrap gap-4 mt-3">
-              {!hideElo && (
-                <div>
-                  <p className="text-3xl font-bold text-green-400 tabular-nums">{player.elo}</p>
-                  <p className="text-xs text-muted">ELO Rating</p>
+            <div className="flex flex-wrap gap-5 mt-3">
+              {/* Singles stats */}
+              <div className="border-r border-theme pr-5">
+                <p className="text-xs text-muted font-medium mb-1 uppercase tracking-wide">Singles</p>
+                <div className="flex flex-wrap gap-4">
+                  {!hideElo && (
+                    <div>
+                      <p className="text-3xl font-bold text-green-400 tabular-nums">{player.elo}</p>
+                      <p className="text-xs text-muted">ELO{singlesEloDelta !== 0 && <span className={`ml-1 ${singlesEloDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>({singlesEloDelta > 0 ? '+' : ''}{singlesEloDelta})</span>}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-2xl font-bold tabular-nums">{player.wins}<span className="text-muted font-normal text-base">W</span> {player.losses}<span className="text-muted font-normal text-base">L</span></p>
+                    <p className="text-xs text-muted">{singlesGames} games · {singlesWinRate ?? '—'}% win</p>
+                  </div>
+                  {player.current_streak > 1 && (
+                    <div>
+                      <p className="text-2xl font-bold text-orange-400 tabular-nums">{player.current_streak} 🔥</p>
+                      <p className="text-xs text-muted">Streak</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              <div>
-                <p className="text-2xl font-bold tabular-nums">{player.wins}<span className="text-muted font-normal text-base">W</span> {player.losses}<span className="text-muted font-normal text-base">L</span></p>
-                <p className="text-xs text-muted">{totalGames} total games · {winRate ?? '—'}% win rate</p>
               </div>
-              {player.current_streak > 1 && (
-                <div>
-                  <p className="text-2xl font-bold text-orange-400 tabular-nums">{player.current_streak} 🔥</p>
-                  <p className="text-xs text-muted">Current win streak</p>
+              {/* Doubles stats */}
+              <div>
+                <p className="text-xs text-muted font-medium mb-1 uppercase tracking-wide">Doubles</p>
+                <div className="flex flex-wrap gap-4">
+                  {!hideElo && (
+                    <div>
+                      <p className="text-3xl font-bold text-blue-400 tabular-nums">{player.elo_doubles ?? 1000}</p>
+                      <p className="text-xs text-muted">ELO{doublesEloDelta !== 0 && <span className={`ml-1 ${doublesEloDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>({doublesEloDelta > 0 ? '+' : ''}{doublesEloDelta})</span>}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-2xl font-bold tabular-nums">{player.doubles_wins ?? 0}<span className="text-muted font-normal text-base">W</span> {player.doubles_losses ?? 0}<span className="text-muted font-normal text-base">L</span></p>
+                    <p className="text-xs text-muted">{doublesGames} games · {doublesWinRate ?? '—'}% win</p>
+                  </div>
                 </div>
-              )}
-              {player.best_streak > 0 && (
-                <div>
-                  <p className="text-2xl font-bold text-yellow-400 tabular-nums">{player.best_streak}</p>
-                  <p className="text-xs text-muted">Best win streak</p>
-                </div>
-              )}
-              {!hideElo && eloDelta !== 0 && (
-                <div>
-                  <p className={`text-2xl font-bold tabular-nums ${eloDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {eloDelta > 0 ? '+' : ''}{eloDelta}
-                  </p>
-                  <p className="text-xs text-muted">Total ELO change</p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -207,8 +207,27 @@ export default function PlayerProfilePage() {
         {/* ELO history chart */}
         {!hideElo && (
           <div className="card">
-            <h2 className="font-semibold mb-4">ELO Progression</h2>
-            <EloChart history={eloHistory} currentElo={player.elo} />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold">ELO Progression</h2>
+              <div className="flex gap-1 bg-input p-0.5 rounded-md border border-theme">
+                <button
+                  onClick={() => setEloTab('singles')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${eloTab === 'singles' ? 'bg-green-600 text-white' : 'text-secondary hover:text-primary'}`}
+                >
+                  Singles
+                </button>
+                <button
+                  onClick={() => setEloTab('doubles')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${eloTab === 'doubles' ? 'bg-blue-600 text-white' : 'text-secondary hover:text-primary'}`}
+                >
+                  Doubles
+                </button>
+              </div>
+            </div>
+            <EloChart
+              history={eloTab === 'singles' ? eloHistory : (eloHistoryDoubles ?? [])}
+              currentElo={eloTab === 'singles' ? player.elo : (player.elo_doubles ?? 1000)}
+            />
             <div className="flex justify-between text-xs text-muted mt-2">
               <span>First match</span>
               <span>Latest</span>

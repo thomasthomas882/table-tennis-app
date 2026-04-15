@@ -86,6 +86,10 @@ try { db.exec('ALTER TABLE tables_tt ADD COLUMN position INTEGER'); } catch (_) 
 try { db.exec('ALTER TABLE players ADD COLUMN current_streak INTEGER DEFAULT 0'); } catch (_) {}
 try { db.exec('ALTER TABLE players ADD COLUMN best_streak INTEGER DEFAULT 0'); } catch (_) {}
 try { db.exec('ALTER TABLE matches ADD COLUMN series_id INTEGER REFERENCES series(id)'); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN elo_doubles INTEGER DEFAULT 1000'); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN doubles_wins INTEGER DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN doubles_losses INTEGER DEFAULT 0'); } catch (_) {}
+try { db.exec("ALTER TABLE elo_history ADD COLUMN rating_type TEXT DEFAULT 'singles'"); } catch (_) {}
 
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;

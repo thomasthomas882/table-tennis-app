@@ -116,10 +116,22 @@ export default function PlayersPage() {
 
                 <h3 className="font-semibold truncate pr-4">{p.name}</h3>
                 {!hideElo && (
-                  <p className="text-3xl font-bold text-green-400 mt-0.5 tabular-nums">
-                    {p.elo}
-                    <span className="text-sm text-muted font-normal ml-1">ELO</span>
-                  </p>
+                  <div className="flex gap-3 mt-0.5">
+                    <div>
+                      <p className="text-2xl font-bold text-green-400 tabular-nums">
+                        {p.elo}
+                        <span className="text-xs text-muted font-normal ml-1">S</span>
+                      </p>
+                    </div>
+                    {(p.doubles_wins ?? 0) + (p.doubles_losses ?? 0) > 0 && (
+                      <div>
+                        <p className="text-2xl font-bold text-blue-400 tabular-nums">
+                          {p.elo_doubles ?? 1000}
+                          <span className="text-xs text-muted font-normal ml-1">D</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <div className="mt-3 pt-3 border-t border-theme grid grid-cols-3 gap-1 text-center text-xs">

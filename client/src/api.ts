@@ -50,7 +50,7 @@ export const api = {
   voidMatch: (id: number) => request(`/matches/${id}`, { method: 'DELETE' }),
 
   // Leaderboard
-  getLeaderboard: () => request('/leaderboard'),
+  getLeaderboard: (type: 'singles' | 'doubles' = 'singles') => request(`/leaderboard${type === 'doubles' ? '?type=doubles' : ''}`),
 
   // Stats
   getStats: () => request('/stats'),
