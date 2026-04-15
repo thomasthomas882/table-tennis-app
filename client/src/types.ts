@@ -84,6 +84,15 @@ export interface Match {
   completed_at: string | null;
 }
 
+export interface Achievement {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  ephemeral?: boolean;
+  earnedAt: string | null; // ISO string, 'active' for ephemeral, or null if locked
+}
+
 export interface Notification {
   id: number;
   message: string;

@@ -62,6 +62,9 @@ export const api = {
   // Player stats
   getPlayerStats: (id: number) => request(`/players/${id}/stats`),
 
+  // Player achievements
+  getPlayerAchievements: (id: number) => request(`/players/${id}/achievements`),
+
   // Player ELO reset
   resetPlayerElo: (id: number) => request(`/players/${id}/reset-elo`, { method: 'POST' }),
 

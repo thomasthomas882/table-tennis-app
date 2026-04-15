@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const db = require('./database');
 const { calculateNewRatings } = require('./elo');
+const { checkAndAward, ACHIEVEMENTS } = require('./achievementChecker');
 
 const app = express();
 const server = http.createServer(app);
@@ -438,16 +439,17 @@ app.post('/api/matches/:id/complete', (req, res) => {
         const newElo = p.elo + winnerDelta;
         const newStreak = (p.current_streak >= 0 ? p.current_streak : 0) + 1;
         const newBest = Math.max(p.best_streak, newStreak);
-        db.prepare('UPDATE players SET wins = wins + 1, elo = ?, current_streak = ?, best_streak = ? WHERE id = ?')
+        db.prepare('UPDATE players SET wins = wins + 1, elo = ?, current_streak = ?, best_streak = ?, current_losing_streak = 0 WHERE id = ?')
           .run(newElo, newStreak, newBest, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
           .run(id, newElo, winnerDelta, match.id, 'singles');
       });
       loserIds.forEach(id => {
-        const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
+        const p = db.prepare('SELECT elo, current_streak, best_streak, current_losing_streak FROM players WHERE id = ?').get(id);
         const newElo = p.elo + loserDelta;
-        db.prepare('UPDATE players SET losses = losses + 1, elo = ?, current_streak = 0 WHERE id = ?')
-          .run(newElo, id);
+        const newLoseStreak = (p.current_losing_streak ?? 0) + 1;
+        db.prepare('UPDATE players SET losses = losses + 1, elo = ?, current_streak = 0, current_losing_streak = ? WHERE id = ?')
+          .run(newElo, newLoseStreak, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
           .run(id, newElo, loserDelta, match.id, 'singles');
       });
@@ -480,6 +482,24 @@ app.post('/api/matches/:id/complete', (req, res) => {
   const winnerName = winnerPlayers.map(p => p.name).join(' & ');
   const loserName  = loserPlayers.map(p => p.name).join(' & ');
   notify(`${winnerName} beat ${loserName}! ELO: ${winnerDelta > 0 ? '+' : ''}${winnerDelta}`, 'success');
+
+  // Check and award achievements
+  try {
+    const newlyEarned = checkAndAward(db, {
+      match, isDoubles, winnerIds, loserIds,
+      winnerPlayersBeforeMatch: winnerPlayers,
+      loserPlayersBeforeMatch: loserPlayers,
+      winnerDelta, loserDelta,
+    });
+    for (const { playerId, achievementId } of newlyEarned) {
+      const playerName = db.prepare('SELECT name FROM players WHERE id = ?').get(playerId)?.name ?? 'Someone';
+      const ach = ACHIEVEMENTS.find(a => a.id === achievementId);
+      if (ach) notify(`${playerName} earned "${ach.name}" ${ach.icon}`, 'success');
+    }
+  } catch (e) {
+    console.error('Achievement check error:', e.message);
+  }
+
   res.json(completedMatch);
 });
 
@@ -531,13 +551,14 @@ app.delete('/api/matches/:id/history', (req, res) => {
           const p = fetchPlayer(id);
           const newElo = Math.max(100, p[eloField] + winnerDelta);
           const newStreak = p.current_streak + 1;
-          db.prepare('UPDATE players SET elo=?, wins=wins+1, current_streak=?, best_streak=MAX(best_streak,?) WHERE id=?').run(newElo, newStreak, newStreak, id);
+          db.prepare('UPDATE players SET elo=?, wins=wins+1, current_streak=?, best_streak=MAX(best_streak,?), current_losing_streak=0 WHERE id=?').run(newElo, newStreak, newStreak, id);
           db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, winnerDelta, m.id, 'singles');
         });
         loserIds.forEach(id => {
           const p = fetchPlayer(id);
           const newElo = Math.max(100, p[eloField] + loserDelta);
-          db.prepare('UPDATE players SET elo=?, losses=losses+1, current_streak=0 WHERE id=?').run(newElo, id);
+          const newLoseStreak = (p.current_losing_streak ?? 0) + 1;
+          db.prepare('UPDATE players SET elo=?, losses=losses+1, current_streak=0, current_losing_streak=? WHERE id=?').run(newElo, newLoseStreak, id);
           db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, loserDelta, m.id, 'singles');
         });
       }
@@ -622,6 +643,55 @@ app.get('/api/stats', (req, res) => {
     activeMatches: db.prepare("SELECT COUNT(*) as c FROM matches WHERE status = 'in_progress'").get().c,
     queueLength: db.prepare('SELECT COUNT(*) as c FROM queue').get().c,
   });
+});
+
+// ─── Achievements ────────────────────────────────────────────────────────────
+
+app.get('/api/players/:id/achievements', (req, res) => {
+  const pid = Number(req.params.id);
+  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(pid);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+
+  // Earned (permanent)
+  const earned = db.prepare(
+    "SELECT achievement_id, earned_at FROM achievements WHERE player_id = ? ORDER BY earned_at ASC"
+  ).all(pid);
+  const earnedMap = {};
+  for (const e of earned) earnedMap[e.achievement_id] = e.earned_at;
+
+  // Compute ephemeral: ghost / hermit
+  const lastMatchRow = db.prepare(`
+    SELECT completed_at FROM matches
+    WHERE status = 'completed' AND (player1_id = ? OR player2_id = ? OR player3_id = ? OR player4_id = ?)
+    ORDER BY completed_at DESC LIMIT 1
+  `).get(pid, pid, pid, pid);
+
+  const ephemeralEarned = {};
+  if (lastMatchRow?.completed_at) {
+    const lastDate = new Date(lastMatchRow.completed_at.includes('T')
+      ? lastMatchRow.completed_at + 'Z'
+      : lastMatchRow.completed_at.replace(' ', 'T') + 'Z');
+    const daysSince = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 30) ephemeralEarned['hermit'] = true;
+    else if (daysSince >= 7) ephemeralEarned['ghost'] = true;
+  } else if (player.created_at) {
+    // Never played at all
+    const created = new Date(player.created_at.includes('T')
+      ? player.created_at + 'Z'
+      : player.created_at.replace(' ', 'T') + 'Z');
+    const daysSince = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 30) ephemeralEarned['hermit'] = true;
+    else if (daysSince >= 7) ephemeralEarned['ghost'] = true;
+  }
+
+  const all = ACHIEVEMENTS.map(a => ({
+    ...a,
+    earnedAt: a.ephemeral
+      ? (ephemeralEarned[a.id] ? 'active' : null)
+      : (earnedMap[a.id] ?? null),
+  }));
+
+  res.json(all);
 });
 
 // ─── Per-player ELO reset ────────────────────────────────────────────────────

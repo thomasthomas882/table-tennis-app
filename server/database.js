@@ -90,6 +90,17 @@ try { db.exec('ALTER TABLE players ADD COLUMN elo_doubles INTEGER DEFAULT 1000')
 try { db.exec('ALTER TABLE players ADD COLUMN doubles_wins INTEGER DEFAULT 0'); } catch (_) {}
 try { db.exec('ALTER TABLE players ADD COLUMN doubles_losses INTEGER DEFAULT 0'); } catch (_) {}
 try { db.exec("ALTER TABLE elo_history ADD COLUMN rating_type TEXT DEFAULT 'singles'"); } catch (_) {}
+try { db.exec('ALTER TABLE players ADD COLUMN current_losing_streak INTEGER DEFAULT 0'); } catch (_) {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    achievement_id TEXT NOT NULL,
+    earned_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(player_id, achievement_id)
+  )
+`);
 
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;

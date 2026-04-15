@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import { PlayerStats, Match, EloHistoryEntry } from '../types';
+import { PlayerStats, Match, EloHistoryEntry, Achievement } from '../types';
 import { useApp } from '../App';
 
 function parseUTC(s: string) {
@@ -139,12 +139,19 @@ export default function PlayerProfilePage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    api.getPlayerStats(Number(id))
-      .then(s => setStats(s as PlayerStats))
+    Promise.all([
+      api.getPlayerStats(Number(id)),
+      api.getPlayerAchievements(Number(id)),
+    ])
+      .then(([s, a]) => {
+        setStats(s as PlayerStats);
+        setAchievements(a as Achievement[]);
+      })
       .catch(() => navigate('/players'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -153,8 +160,9 @@ export default function PlayerProfilePage() {
     if (!confirmReset) { setConfirmReset(true); return; }
     setConfirmReset(false);
     await api.resetPlayerElo(Number(id));
-    const s = await api.getPlayerStats(Number(id));
+    const [s, a] = await Promise.all([api.getPlayerStats(Number(id)), api.getPlayerAchievements(Number(id))]);
     setStats(s as PlayerStats);
+    setAchievements(a as Achievement[]);
   }
 
   async function handleDeleteConfirm() {
@@ -164,8 +172,9 @@ export default function PlayerProfilePage() {
     try {
       await api.deleteMatchFromHistory(confirmDeleteId);
       setConfirmDeleteId(null);
-      const s = await api.getPlayerStats(Number(id));
+      const [s, a] = await Promise.all([api.getPlayerStats(Number(id)), api.getPlayerAchievements(Number(id))]);
       setStats(s as PlayerStats);
+      setAchievements(a as Achievement[]);
     } catch (e: any) {
       setDeleteError(e.message || 'Failed to delete match');
     } finally {
@@ -359,6 +368,46 @@ export default function PlayerProfilePage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Achievements */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold">Achievements</h2>
+          <span className="text-xs text-muted">{achievements.filter(a => a.earnedAt).length} / {achievements.length} earned</span>
+        </div>
+        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+          {achievements.map(a => {
+            const earned = !!a.earnedAt;
+            const dateStr = earned && a.earnedAt !== 'active'
+              ? new Date(a.earnedAt!).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+              : null;
+            return (
+              <div key={a.id} className="relative group flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl border transition-all
+                  ${earned
+                    ? 'border-green-500/40 bg-green-500/10 shadow-[0_0_8px_rgba(34,197,94,0.15)]'
+                    : 'border-theme bg-card/50 opacity-30 grayscale'}`}>
+                  {a.icon}
+                </div>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 pointer-events-none
+                                hidden group-hover:block w-44">
+                  <div className="bg-card border border-theme rounded-lg p-2.5 shadow-xl text-left">
+                    <p className="font-semibold text-xs text-primary">{a.icon} {a.name}</p>
+                    <p className="text-xs text-muted mt-1 leading-snug">{a.description}</p>
+                    {earned
+                      ? <p className="text-xs text-green-400 mt-1.5 font-medium">
+                          {dateStr ? `Earned ${dateStr}` : 'Currently active'}
+                        </p>
+                      : <p className="text-xs text-faint mt-1.5">Locked</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
