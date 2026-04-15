@@ -136,8 +136,9 @@ export default function App() {
     socket.on('notification', pushNotification);
 
     refreshStats();
+    socket.connect();
 
-    return () => { socket.removeAllListeners(); };
+    return () => { socket.removeAllListeners(); socket.disconnect(); };
   }, []);
 
   const dismissNotification = (id: number) => {

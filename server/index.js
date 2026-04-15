@@ -490,8 +490,8 @@ app.delete('/api/matches/:id/history', (req, res) => {
 
   db.exec('BEGIN');
   try {
-    db.prepare('DELETE FROM matches WHERE id = ?').run(match.id);
     db.exec('DELETE FROM elo_history');
+    db.prepare('DELETE FROM matches WHERE id = ?').run(match.id);
     db.exec('UPDATE players SET elo=1000, elo_doubles=1000, wins=0, losses=0, doubles_wins=0, doubles_losses=0, current_streak=0, best_streak=0');
 
     const remaining = db.prepare("SELECT * FROM matches WHERE status='completed' ORDER BY completed_at ASC").all();
