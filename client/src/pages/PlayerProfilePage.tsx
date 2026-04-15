@@ -128,6 +128,39 @@ function RecentMatchCard({ match, playerId, confirming, deleting, onDeleteReques
   );
 }
 
+const ANIM_MAP: Record<string, string> = {
+  first_win:        'ach-bounce',
+  first_loss:       'ach-wobble',
+  hat_trick:        'ach-wiggle',
+  on_fire:          'ach-wiggle',
+  unstoppable:      'ach-wiggle',
+  rough_patch:      'ach-wobble',
+  rock_bottom:      'ach-wobble',
+  bagel:            'ach-spin',
+  squeaky:          'ach-bounce',
+  obliterate:       'ach-spin',
+  underdog:         'ach-bounce',
+  kingslayer:       'ach-spin',
+  rising_star:      'ach-bounce',
+  sharp_paddle:     'ach-wiggle',
+  elite:            'ach-spin',
+  freefall:         'ach-wobble',
+  comeback_king:    'ach-bounce',
+  getting_started:  'ach-bounce',
+  veteran:          'ach-bounce',
+  centurion:        'ach-spin',
+  quarter_century:  'ach-wiggle',
+  ace:              'ach-spin',
+  dynamic_duo:      'ach-wiggle',
+  doubles_devotee:  'ach-wiggle',
+  social_butterfly: 'ach-wiggle',
+  rivals:           'ach-wiggle',
+  night_owl:        'ach-wobble',
+  dedicated:        'ach-bounce',
+  ghost:            'ach-wobble',
+  hermit:           'ach-wobble',
+};
+
 export default function PlayerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -386,7 +419,7 @@ export default function PlayerProfilePage() {
               <div key={a.id} className="relative group flex flex-col items-center">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl border transition-all
                   ${earned
-                    ? 'border-green-500/40 bg-green-500/10 shadow-[0_0_8px_rgba(34,197,94,0.15)]'
+                    ? `border-green-500/40 bg-green-500/10 shadow-[0_0_8px_rgba(34,197,94,0.15)] ${ANIM_MAP[a.id] ?? 'ach-bounce'}`
                     : 'border-theme bg-card/50 opacity-30 grayscale'}`}>
                   {a.icon}
                 </div>
