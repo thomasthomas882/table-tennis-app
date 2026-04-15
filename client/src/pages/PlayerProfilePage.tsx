@@ -71,8 +71,14 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
   );
 }
 
-function RecentMatchCard({ match, playerId, hideElo, onDelete }: {
-  match: Match; playerId: number; hideElo: boolean; onDelete: (id: number) => void;
+function RecentMatchCard({ match, playerId, confirming, deleting, onDeleteRequest, onDeleteConfirm, onDeleteCancel }: {
+  match: Match;
+  playerId: number;
+  confirming: boolean;
+  deleting: boolean;
+  onDeleteRequest: () => void;
+  onDeleteConfirm: () => void;
+  onDeleteCancel: () => void;
 }) {
   const onTeam1 = match.player1_id === playerId || match.player3_id === playerId;
   const won = onTeam1 ? match.winner_id === match.player1_id : match.winner_id === match.player2_id;
@@ -86,11 +92,27 @@ function RecentMatchCard({ match, playerId, hideElo, onDelete }: {
 
   return (
     <div className={`relative flex items-center gap-3 p-3 rounded-lg border group ${won ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
-      <button
-        onClick={() => onDelete(match.id)}
-        className="absolute top-2 right-2 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-lg leading-none"
-        title="Delete match"
-      >×</button>
+      {confirming ? (
+        <div className="absolute inset-0 rounded-lg bg-card/95 flex items-center justify-center gap-2 z-10 px-3">
+          <span className="text-xs text-secondary mr-1">Delete this match?</span>
+          <button
+            onClick={onDeleteConfirm}
+            disabled={deleting}
+            className="text-xs px-2.5 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors font-medium disabled:opacity-50"
+          >{deleting ? '…' : 'Delete'}</button>
+          <button
+            onClick={onDeleteCancel}
+            disabled={deleting}
+            className="text-xs px-2.5 py-1 rounded border border-theme text-muted hover:text-primary transition-colors"
+          >Cancel</button>
+        </div>
+      ) : (
+        <button
+          onClick={onDeleteRequest}
+          className="absolute top-2 right-2 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-lg leading-none"
+          title="Delete match"
+        >×</button>
+      )}
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
         {won ? 'W' : 'L'}
       </div>
@@ -114,6 +136,9 @@ export default function PlayerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -132,11 +157,20 @@ export default function PlayerProfilePage() {
     setStats(s as PlayerStats);
   }
 
-  async function handleDeleteMatch(matchId: number) {
-    if (!confirm('Delete this match? All player ratings will be recalculated from remaining history.')) return;
-    await api.deleteMatchFromHistory(matchId);
-    const s = await api.getPlayerStats(Number(id));
-    setStats(s as PlayerStats);
+  async function handleDeleteConfirm() {
+    if (confirmDeleteId === null) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.deleteMatchFromHistory(confirmDeleteId);
+      setConfirmDeleteId(null);
+      const s = await api.getPlayerStats(Number(id));
+      setStats(s as PlayerStats);
+    } catch (e: any) {
+      setDeleteError(e.message || 'Failed to delete match');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -306,12 +340,22 @@ export default function PlayerProfilePage() {
       {/* Recent matches */}
       <div className="card">
         <h2 className="font-semibold mb-4">Recent Matches</h2>
+        {deleteError && <p className="text-red-400 text-sm mb-3">{deleteError}</p>}
         {recentMatches.length === 0 ? (
           <p className="text-muted text-sm">No matches played yet.</p>
         ) : (
           <div className="grid sm:grid-cols-2 gap-2">
             {recentMatches.map(m => (
-              <RecentMatchCard key={m.id} match={m} playerId={player.id} hideElo={hideElo} onDelete={handleDeleteMatch} />
+              <RecentMatchCard
+                key={m.id}
+                match={m}
+                playerId={player.id}
+                confirming={confirmDeleteId === m.id}
+                deleting={deleting}
+                onDeleteRequest={() => { setConfirmDeleteId(m.id); setDeleteError(''); }}
+                onDeleteConfirm={handleDeleteConfirm}
+                onDeleteCancel={() => setConfirmDeleteId(null)}
+              />
             ))}
           </div>
         )}
