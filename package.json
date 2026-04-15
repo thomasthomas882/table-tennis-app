@@ -38,6 +38,9 @@
       "shortcutName": "PingTrack"
     }
   },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^34.0.0",

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node --watch --experimental-sqlite index.js",
-    "start": "node --experimental-sqlite index.js"
+    "dev": "node --watch index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

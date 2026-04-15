@@ -43,7 +43,7 @@ function startServer() {
   log('process.execPath:', process.execPath);
 
   serverProcess = fork(serverEntry, [], {
-    execArgv: ['--experimental-sqlite'],
+    execArgv: [],
     env: {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
