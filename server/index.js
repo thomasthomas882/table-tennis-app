@@ -483,6 +483,79 @@ app.post('/api/matches/:id/complete', (req, res) => {
   res.json(completedMatch);
 });
 
+// Delete completed match from history + replay all ELO
+app.delete('/api/matches/:id/history', (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'completed'").get(req.params.id);
+  if (!match) return res.status(404).json({ error: 'Completed match not found' });
+
+  db.exec('BEGIN');
+  try {
+    db.prepare('DELETE FROM matches WHERE id = ?').run(match.id);
+    db.exec('DELETE FROM elo_history');
+    db.exec('UPDATE players SET elo=1000, elo_doubles=1000, wins=0, losses=0, doubles_wins=0, doubles_losses=0, current_streak=0, best_streak=0');
+
+    const remaining = db.prepare("SELECT * FROM matches WHERE status='completed' ORDER BY completed_at ASC").all();
+
+    for (const m of remaining) {
+      const isDoubles = !!(m.player3_id || m.player4_id);
+      const eloField = isDoubles ? 'elo_doubles' : 'elo';
+      const winnerIds = m.winner_id === m.player1_id
+        ? [m.player1_id, m.player3_id].filter(Boolean)
+        : [m.player2_id, m.player4_id].filter(Boolean);
+      const loserIds = m.winner_id === m.player1_id
+        ? [m.player2_id, m.player4_id].filter(Boolean)
+        : [m.player1_id, m.player3_id].filter(Boolean);
+
+      const fetchPlayer = (id) => db.prepare('SELECT * FROM players WHERE id=?').get(id);
+
+      const avgWElo = Math.round(winnerIds.reduce((s, id) => s + fetchPlayer(id)[eloField], 0) / winnerIds.length);
+      const avgLElo = Math.round(loserIds.reduce((s, id) => s + fetchPlayer(id)[eloField], 0) / loserIds.length);
+      const avgWMatches = Math.round(winnerIds.reduce((s, id) => { const p = fetchPlayer(id); return s + p.wins + p.losses; }, 0) / winnerIds.length);
+      const avgLMatches = Math.round(loserIds.reduce((s, id) => { const p = fetchPlayer(id); return s + p.wins + p.losses; }, 0) / loserIds.length);
+
+      const { winnerDelta, loserDelta } = calculateNewRatings(avgWElo, avgLElo, avgWMatches, avgLMatches);
+
+      if (isDoubles) {
+        winnerIds.forEach(id => {
+          const newElo = Math.max(100, fetchPlayer(id)[eloField] + winnerDelta);
+          db.prepare('UPDATE players SET elo_doubles=?, doubles_wins=doubles_wins+1 WHERE id=?').run(newElo, id);
+          db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, winnerDelta, m.id, 'doubles');
+        });
+        loserIds.forEach(id => {
+          const newElo = Math.max(100, fetchPlayer(id)[eloField] + loserDelta);
+          db.prepare('UPDATE players SET elo_doubles=?, doubles_losses=doubles_losses+1 WHERE id=?').run(newElo, id);
+          db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, loserDelta, m.id, 'doubles');
+        });
+      } else {
+        winnerIds.forEach(id => {
+          const p = fetchPlayer(id);
+          const newElo = Math.max(100, p[eloField] + winnerDelta);
+          const newStreak = p.current_streak + 1;
+          db.prepare('UPDATE players SET elo=?, wins=wins+1, current_streak=?, best_streak=MAX(best_streak,?) WHERE id=?').run(newElo, newStreak, newStreak, id);
+          db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, winnerDelta, m.id, 'singles');
+        });
+        loserIds.forEach(id => {
+          const p = fetchPlayer(id);
+          const newElo = Math.max(100, p[eloField] + loserDelta);
+          db.prepare('UPDATE players SET elo=?, losses=losses+1, current_streak=0 WHERE id=?').run(newElo, id);
+          db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?,?,?,?,?)').run(id, newElo, loserDelta, m.id, 'singles');
+        });
+      }
+    }
+
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to delete match: ' + e.message });
+  }
+
+  const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
+  broadcast('players:updated', players);
+  broadcast('leaderboard:updated', players);
+  notify('Match deleted — ratings recalculated', 'warning');
+  res.json({ ok: true });
+});
+
 // Void match
 app.delete('/api/matches/:id', (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'in_progress'").get(req.params.id);
@@ -500,9 +573,19 @@ app.delete('/api/matches/:id', (req, res) => {
     return res.status(500).json({ error: 'Failed to void match' });
   }
 
+  // Re-queue all players from the voided match
+  const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
+  const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+  allPlayerIds.forEach((pid, i) => {
+    try {
+      db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+    } catch (_) { /* already in queue */ }
+  });
+
   broadcast('tables:updated', getTables());
+  broadcast('queue:updated', getQueue());
   broadcast('match:completed', null);
-  notify('Match voided — no scores recorded', 'warning');
+  notify('Match voided — players returned to queue', 'warning');
   res.json({ ok: true });
 });
 
@@ -539,6 +622,25 @@ app.get('/api/stats', (req, res) => {
     activeMatches: db.prepare("SELECT COUNT(*) as c FROM matches WHERE status = 'in_progress'").get().c,
     queueLength: db.prepare('SELECT COUNT(*) as c FROM queue').get().c,
   });
+});
+
+// ─── Per-player ELO reset ────────────────────────────────────────────────────
+
+app.post('/api/players/:id/reset-elo', (req, res) => {
+  const pid = Number(req.params.id);
+  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(pid);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+
+  db.prepare(`UPDATE players SET elo = 1000, elo_doubles = 1000,
+    wins = 0, losses = 0, doubles_wins = 0, doubles_losses = 0,
+    current_streak = 0, best_streak = 0 WHERE id = ?`).run(pid);
+  db.prepare('DELETE FROM elo_history WHERE player_id = ?').run(pid);
+
+  const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
+  broadcast('players:updated', players);
+  broadcast('leaderboard:updated', players);
+  notify(`${player.name}'s ELO has been reset to 1000`, 'warning');
+  res.json({ ok: true });
 });
 
 // ─── Reset ELO only ──────────────────────────────────────────────────────────

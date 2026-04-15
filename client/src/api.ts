@@ -62,6 +62,12 @@ export const api = {
   // Player stats
   getPlayerStats: (id: number) => request(`/players/${id}/stats`),
 
+  // Player ELO reset
+  resetPlayerElo: (id: number) => request(`/players/${id}/reset-elo`, { method: 'POST' }),
+
+  // Delete match from history (recalculates all ELO)
+  deleteMatchFromHistory: (id: number) => request(`/matches/${id}/history`, { method: 'DELETE' }),
+
   // Admin
   resetAll: () => request('/reset', { method: 'POST' }),
   resetElo: () => request('/reset-elo', { method: 'POST' }),

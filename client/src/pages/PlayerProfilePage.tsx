@@ -71,14 +71,13 @@ function EloChart({ history, currentElo }: { history: EloHistoryEntry[]; current
   );
 }
 
-function RecentMatchCard({ match, playerId, hideElo }: { match: Match; playerId: number; hideElo: boolean }) {
+function RecentMatchCard({ match, playerId, hideElo, onDelete }: {
+  match: Match; playerId: number; hideElo: boolean; onDelete: (id: number) => void;
+}) {
   const onTeam1 = match.player1_id === playerId || match.player3_id === playerId;
   const won = onTeam1 ? match.winner_id === match.player1_id : match.winner_id === match.player2_id;
   const isDoubles = !!(match.player3_id || match.player4_id);
 
-  const myTeam = onTeam1
-    ? [match.player1_name, match.player3_name].filter(Boolean).join(' & ')
-    : [match.player2_name, match.player4_name].filter(Boolean).join(' & ');
   const oppTeam = onTeam1
     ? [match.player2_name, match.player4_name].filter(Boolean).join(' & ')
     : [match.player1_name, match.player3_name].filter(Boolean).join(' & ');
@@ -86,11 +85,16 @@ function RecentMatchCard({ match, playerId, hideElo }: { match: Match; playerId:
   const oppScore = onTeam1 ? match.player2_score : match.player1_score;
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border ${won ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
+    <div className={`relative flex items-center gap-3 p-3 rounded-lg border group ${won ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
+      <button
+        onClick={() => onDelete(match.id)}
+        className="absolute top-2 right-2 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-lg leading-none"
+        title="Delete match"
+      >×</button>
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
         {won ? 'W' : 'L'}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-4">
         <p className="text-sm font-medium truncate">vs {oppTeam}</p>
         <p className="text-xs text-muted">
           {myScore}–{oppScore}
@@ -109,6 +113,7 @@ export default function PlayerProfilePage() {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -118,6 +123,21 @@ export default function PlayerProfilePage() {
       .catch(() => navigate('/players'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleResetElo() {
+    if (!confirmReset) { setConfirmReset(true); return; }
+    setConfirmReset(false);
+    await api.resetPlayerElo(Number(id));
+    const s = await api.getPlayerStats(Number(id));
+    setStats(s as PlayerStats);
+  }
+
+  async function handleDeleteMatch(matchId: number) {
+    if (!confirm('Delete this match? All player ratings will be recalculated from remaining history.')) return;
+    await api.deleteMatchFromHistory(matchId);
+    const s = await api.getPlayerStats(Number(id));
+    setStats(s as PlayerStats);
+  }
 
   if (loading) {
     return (
@@ -199,6 +219,20 @@ export default function PlayerProfilePage() {
                 </div>
               </div>
             </div>
+            {/* Reset ELO button */}
+            <div className="mt-4 pt-3 border-t border-theme flex items-center gap-3">
+              {confirmReset ? (
+                <>
+                  <span className="text-xs text-red-400">Reset this player's ELO to 1000 and clear all history?</span>
+                  <button onClick={handleResetElo} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Confirm reset</button>
+                  <button onClick={() => setConfirmReset(false)} className="text-xs text-muted hover:text-primary transition-colors">Cancel</button>
+                </>
+              ) : (
+                <button onClick={handleResetElo} className="text-xs text-muted hover:text-red-400 transition-colors">
+                  Reset ELO history
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -277,7 +311,7 @@ export default function PlayerProfilePage() {
         ) : (
           <div className="grid sm:grid-cols-2 gap-2">
             {recentMatches.map(m => (
-              <RecentMatchCard key={m.id} match={m} playerId={player.id} hideElo={hideElo} />
+              <RecentMatchCard key={m.id} match={m} playerId={player.id} hideElo={hideElo} onDelete={handleDeleteMatch} />
             ))}
           </div>
         )}
