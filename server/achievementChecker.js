@@ -54,7 +54,7 @@ function checkAndAward(db, {
     const totalGames  = p.wins + p.losses + (p.doubles_wins ?? 0) + (p.doubles_losses ?? 0);
 
     // First ever win (singles or doubles)
-    if (totalWins === 1) award(id, 'first_win');
+    if (totalWins >= 1) award(id, 'first_win');
 
     // Volume milestones
     if (totalGames >= 10)  award(id, 'getting_started');
@@ -109,8 +109,8 @@ function checkAndAward(db, {
     }
 
     if (isDoubles) {
-      if ((p.doubles_wins ?? 0) === 1)  award(id, 'dynamic_duo');
-      if ((p.doubles_wins ?? 0) >= 10)  award(id, 'doubles_devotee');
+      if ((p.doubles_wins ?? 0) >= 1)  award(id, 'dynamic_duo');
+      if ((p.doubles_wins ?? 0) >= 10) award(id, 'doubles_devotee');
     }
   }
 
@@ -118,9 +118,15 @@ function checkAndAward(db, {
   for (const id of loserIds) {
     const p = db.prepare('SELECT * FROM players WHERE id = ?').get(id);
     const totalLosses = p.losses + (p.doubles_losses ?? 0);
+    const totalGames  = p.wins + p.losses + (p.doubles_wins ?? 0) + (p.doubles_losses ?? 0);
 
     // First ever loss
-    if (totalLosses === 1) award(id, 'first_loss');
+    if (totalLosses >= 1) award(id, 'first_loss');
+
+    // Volume milestones (losers reach these too)
+    if (totalGames >= 10)  award(id, 'getting_started');
+    if (totalGames >= 50)  award(id, 'veteran');
+    if (totalGames >= 100) award(id, 'centurion');
 
     if (!isDoubles) {
       // Losing streaks
@@ -139,4 +145,62 @@ function checkAndAward(db, {
   return newlyEarned;
 }
 
-module.exports = { checkAndAward, ACHIEVEMENTS };
+/**
+ * Retroactively award any stat-based achievements a player already qualifies for.
+ * Safe to call repeatedly — INSERT OR IGNORE prevents duplicates.
+ * Called when a player's achievement page is loaded so missing achievements are
+ * caught without needing a new match.
+ */
+function awardStatBasedAchievements(db, player) {
+  function award(achId) {
+    try {
+      db.prepare('INSERT INTO achievements (player_id, achievement_id) VALUES (?, ?)').run(player.id, achId);
+    } catch (_) {}
+  }
+
+  const totalWins   = player.wins + (player.doubles_wins ?? 0);
+  const totalLosses = player.losses + (player.doubles_losses ?? 0);
+  const totalGames  = totalWins + totalLosses;
+
+  if (totalWins   >= 1) award('first_win');
+  if (totalLosses >= 1) award('first_loss');
+
+  if (player.current_streak >= 3)  award('hat_trick');
+  if (player.current_streak >= 5)  award('on_fire');
+  if (player.current_streak >= 10) award('unstoppable');
+
+  if ((player.current_losing_streak ?? 0) >= 3) award('rough_patch');
+  if ((player.current_losing_streak ?? 0) >= 5) award('rock_bottom');
+
+  if (player.elo >= 1100) award('rising_star');
+  if (player.elo >= 1200) award('sharp_paddle');
+  if (player.elo >= 1500) award('elite');
+
+  if (totalGames >= 10)  award('getting_started');
+  if (totalGames >= 50)  award('veteran');
+  if (totalGames >= 100) award('centurion');
+  if (player.wins >= 25) award('quarter_century');
+  if (player.wins >= 50) award('ace');
+
+  if ((player.doubles_wins ?? 0) >= 1)  award('dynamic_duo');
+  if ((player.doubles_wins ?? 0) >= 10) award('doubles_devotee');
+
+  // Social: unique opponents beaten in singles
+  const row = db.prepare(`
+    SELECT COUNT(DISTINCT CASE WHEN player1_id = ? THEN player2_id ELSE player1_id END) as cnt
+    FROM matches
+    WHERE status = 'completed' AND winner_id = ?
+      AND player3_id IS NULL AND (player1_id = ? OR player2_id = ?)
+  `).get(player.id, player.id, player.id, player.id);
+  if (row?.cnt >= 5)  award('social_butterfly');
+  if (row?.cnt >= 10) award('rivals');
+
+  // Freefall: historical best is 100+ above current ELO
+  const bestRow = db.prepare(
+    "SELECT MAX(elo) as m FROM elo_history WHERE player_id = ? AND rating_type = 'singles'"
+  ).get(player.id);
+  const bestElo = bestRow?.m ?? player.elo;
+  if (bestElo - player.elo >= 100) award('freefall');
+}
+
+module.exports = { checkAndAward, awardStatBasedAchievements, ACHIEVEMENTS };

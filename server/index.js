@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const db = require('./database');
 const { calculateNewRatings } = require('./elo');
-const { checkAndAward, ACHIEVEMENTS } = require('./achievementChecker');
+const { checkAndAward, awardStatBasedAchievements, ACHIEVEMENTS } = require('./achievementChecker');
 
 const app = express();
 const server = http.createServer(app);
@@ -651,6 +651,9 @@ app.get('/api/players/:id/achievements', (req, res) => {
   const pid = Number(req.params.id);
   const player = db.prepare('SELECT * FROM players WHERE id = ?').get(pid);
   if (!player) return res.status(404).json({ error: 'Player not found' });
+
+  // Retroactively award any stat-based achievements the player already qualifies for
+  awardStatBasedAchievements(db, player);
 
   // Earned (permanent)
   const earned = db.prepare(
