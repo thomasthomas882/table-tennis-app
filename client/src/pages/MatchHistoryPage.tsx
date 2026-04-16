@@ -9,6 +9,7 @@ function parseUTC(s: string) {
 
 function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
   const isDoubles = !!(match.player3_id || match.player4_id);
+  const isDraw = match.winner_id === null;
   const teamA = [match.player1_name, match.player3_name].filter(Boolean).join(' & ');
   const teamB = [match.player2_name, match.player4_name].filter(Boolean).join(' & ');
   const p1Won = match.winner_id === match.player1_id;
@@ -24,6 +25,7 @@ function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           {isDoubles && <span className="badge bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px]">2v2</span>}
+          {isDraw && <span className="badge bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Draw</span>}
           <div>
             <span className={`font-medium text-sm ${p1Won ? 'text-green-400' : 'text-secondary'}`}>{teamA}</span>
             {!hideElo && <span className="text-xs text-muted ml-1">({match.player1_elo}{match.player3_elo ? `/${match.player3_elo}` : ''})</span>}
@@ -32,9 +34,9 @@ function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
       </td>
       <td className="px-4 py-3 text-center">
         <span className="font-bold tabular-nums text-sm">
-          <span className={p1Won ? 'text-green-400' : 'text-faint'}>{match.player1_score}</span>
+          <span className={p1Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}>{match.player1_score}</span>
           <span className="text-muted mx-1">–</span>
-          <span className={p2Won ? 'text-green-400' : 'text-faint'}>{match.player2_score}</span>
+          <span className={p2Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}>{match.player2_score}</span>
         </span>
       </td>
       <td className="px-4 py-3">

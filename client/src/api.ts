@@ -47,6 +47,7 @@ export const api = {
     request(`/matches/${id}/score`, { method: 'PATCH', body: JSON.stringify({ player1_score, player2_score }) }),
   completeMatch: (id: number, winner_id: number) =>
     request(`/matches/${id}/complete`, { method: 'POST', body: JSON.stringify({ winner_id }) }),
+  drawMatch: (id: number) => request(`/matches/${id}/draw`, { method: 'POST' }),
   voidMatch: (id: number) => request(`/matches/${id}`, { method: 'DELETE' }),
 
   // Leaderboard

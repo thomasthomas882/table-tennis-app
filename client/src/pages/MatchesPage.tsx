@@ -321,6 +321,8 @@ function ActiveMatchCard({ match }: { match: Match }) {
   const [completing, setCompleting] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [confirmVoid, setConfirmVoid] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const [confirmDraw, setConfirmDraw] = useState(false);
 
   const isDoubles = !!(match.player3_id || match.player4_id);
 
@@ -356,8 +358,16 @@ function ActiveMatchCard({ match }: { match: Match }) {
     finally { setCompleting(false); }
   }
 
+  async function handleDraw() {
+    if (!confirmDraw) { setConfirmDraw(true); setConfirmVoid(false); return; }
+    setDrawing(true);
+    try { await api.drawMatch(match.id); }
+    catch (e) { console.error(e); }
+    finally { setDrawing(false); setConfirmDraw(false); }
+  }
+
   async function handleVoid() {
-    if (!confirmVoid) { sounds.void(); setConfirmVoid(true); return; }
+    if (!confirmVoid) { sounds.void(); setConfirmVoid(true); setConfirmDraw(false); return; }
     setVoiding(true);
     sounds.void();
     try { await api.voidMatch(match.id); }
@@ -439,6 +449,24 @@ function ActiveMatchCard({ match }: { match: Match }) {
           className="flex-1 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-600/40 text-purple-300 font-medium px-3 py-1.5 rounded-lg text-sm transition-all">
           {isDoubles ? 'Team B wins 🏆' : `${match.player2_name.split(' ')[0]} wins 🏆`}
         </button>
+        {confirmDraw ? (
+          <div className="flex items-center gap-1.5 animate-slide-up w-full">
+            <span className="text-xs text-muted">Record as draw? No ELO changes.</span>
+            <button onClick={handleDraw} disabled={drawing}
+              className="bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500/50 text-yellow-300 text-xs px-2 py-1.5 rounded-lg transition-all">
+              {drawing ? '…' : 'Confirm'}
+            </button>
+            <button onClick={() => setConfirmDraw(false)}
+              className="text-muted hover:text-primary text-xs px-2 py-1.5 rounded-lg transition-all">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={handleDraw}
+            className="bg-yellow-600/15 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-400 font-medium px-3 py-1.5 rounded-lg text-sm transition-all">
+            Draw 🤝
+          </button>
+        )}
         {confirmVoid ? (
           <div className="flex items-center gap-1.5 animate-slide-up">
             <span className="text-xs text-muted">Confirm void?</span>
@@ -463,6 +491,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
 }
 
 function CompletedMatchCard({ match }: { match: Match }) {
+  const isDraw = match.winner_id === null;
   const p1Won = match.winner_id === match.player1_id;
   const p2Won = match.winner_id === match.player2_id;
   const isDoubles = !!(match.player3_id || match.player4_id);
@@ -477,8 +506,8 @@ function CompletedMatchCard({ match }: { match: Match }) {
   return (
     <div className="card hover:border-hover transition-all duration-200 hover:-translate-y-0.5">
       <div className="flex items-center justify-between mb-3">
-        <span className="badge bg-card border border-theme text-secondary">
-          {isDoubles ? 'Doubles' : 'Completed'}
+        <span className={`badge border text-[10px] ${isDraw ? 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400' : 'bg-card border-theme text-secondary'}`}>
+          {isDraw ? 'Draw 🤝' : isDoubles ? 'Doubles' : 'Completed'}
         </span>
         <span className="text-xs text-muted">
           {match.completed_at
@@ -487,16 +516,18 @@ function CompletedMatchCard({ match }: { match: Match }) {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <div className={`flex-1 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : ''}`}>
-          <p className={`text-sm font-medium ${p1Won ? 'text-primary' : 'text-muted'}`}>{teamALabel}</p>
-          <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : 'text-faint'}`}>{match.player1_score}</p>
+        <div className={`flex-1 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
+          <p className={`text-sm font-medium ${p1Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamALabel}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}`}>{match.player1_score}</p>
           {p1Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
+          {isDraw && <p className="text-xs text-yellow-400/70 mt-0.5">Draw</p>}
         </div>
         <div className="text-faint font-bold text-sm">vs</div>
-        <div className={`flex-1 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : ''}`}>
-          <p className={`text-sm font-medium ${p2Won ? 'text-primary' : 'text-muted'}`}>{teamBLabel}</p>
-          <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : 'text-faint'}`}>{match.player2_score}</p>
+        <div className={`flex-1 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
+          <p className={`text-sm font-medium ${p2Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamBLabel}</p>
+          <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}`}>{match.player2_score}</p>
           {p2Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
+          {isDraw && <p className="text-xs text-yellow-400/70 mt-0.5">Draw</p>}
         </div>
       </div>
     </div>

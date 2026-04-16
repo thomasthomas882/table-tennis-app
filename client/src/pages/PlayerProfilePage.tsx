@@ -81,7 +81,8 @@ function RecentMatchCard({ match, playerId, confirming, deleting, onDeleteReques
   onDeleteCancel: () => void;
 }) {
   const onTeam1 = match.player1_id === playerId || match.player3_id === playerId;
-  const won = onTeam1 ? match.winner_id === match.player1_id : match.winner_id === match.player2_id;
+  const isDraw = match.winner_id === null;
+  const won = !isDraw && (onTeam1 ? match.winner_id === match.player1_id : match.winner_id === match.player2_id);
   const isDoubles = !!(match.player3_id || match.player4_id);
 
   const oppTeam = onTeam1
@@ -91,7 +92,7 @@ function RecentMatchCard({ match, playerId, confirming, deleting, onDeleteReques
   const oppScore = onTeam1 ? match.player2_score : match.player1_score;
 
   return (
-    <div className={`relative flex items-center gap-3 p-3 rounded-lg border group ${won ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
+    <div className={`relative flex items-center gap-3 p-3 rounded-lg border group ${isDraw ? 'border-yellow-500/30 bg-yellow-500/5' : won ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
       {confirming ? (
         <div className="absolute inset-0 rounded-lg bg-card/95 flex items-center justify-center gap-2 z-10 px-3">
           <span className="text-xs text-secondary mr-1">Delete this match?</span>
@@ -113,8 +114,8 @@ function RecentMatchCard({ match, playerId, confirming, deleting, onDeleteReques
           title="Delete match"
         >×</button>
       )}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-        {won ? 'W' : 'L'}
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${isDraw ? 'bg-yellow-500/20 text-yellow-400' : won ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+        {isDraw ? 'D' : won ? 'W' : 'L'}
       </div>
       <div className="flex-1 min-w-0 pr-4">
         <p className="text-sm font-medium truncate">vs {oppTeam}</p>

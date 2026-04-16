@@ -580,6 +580,41 @@ app.delete('/api/matches/:id/history', (req, res) => {
   res.json({ ok: true });
 });
 
+// Draw match — records result with no ELO or stat changes
+app.post('/api/matches/:id/draw', (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'in_progress'").get(req.params.id);
+  if (!match) return res.status(404).json({ error: 'Active match not found' });
+
+  const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
+
+  db.exec('BEGIN');
+  try {
+    db.prepare(`UPDATE matches SET status = 'completed', winner_id = NULL, completed_at = datetime('now') WHERE id = ?`)
+      .run(match.id);
+    if (match.table_id) {
+      db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
+    }
+    // Re-queue all players
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+    allPlayerIds.forEach((pid, i) => {
+      try {
+        db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+      } catch (_) { /* already in queue */ }
+    });
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to record draw' });
+  }
+
+  const completedMatch = getMatches().find(m => m.id === match.id);
+  broadcast('match:completed', completedMatch);
+  broadcast('tables:updated', getTables());
+  broadcast('queue:updated', getQueue());
+  notify('Match recorded as a draw — no ELO changes', 'info');
+  res.json({ ok: true });
+});
+
 // Void match
 app.delete('/api/matches/:id', (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'in_progress'").get(req.params.id);
