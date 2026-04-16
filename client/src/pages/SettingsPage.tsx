@@ -219,7 +219,7 @@ function ToggleRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { theme, setTheme, tables, soundEnabled, setSoundEnabled, hideElo, setHideElo } = useApp();
+  const { theme, setTheme, tables, soundEnabled, setSoundEnabled, hideElo, setHideElo, skipMatchConfirm, setSkipMatchConfirm } = useApp();
   const [newTable, setNewTable] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -332,6 +332,14 @@ export default function SettingsPage() {
                 sublabel="Mask ratings across the app"
                 value={hideElo}
                 onChange={() => { sounds.tick(); setHideElo(!hideElo); }}
+              />
+              <div className="border-t border-theme/50" />
+              <ToggleRow
+                icon="⚡"
+                label="Skip Void & Draw Confirmation"
+                sublabel="One click instead of two for Void and Draw"
+                value={skipMatchConfirm}
+                onChange={() => { sounds.tick(); setSkipMatchConfirm(!skipMatchConfirm); }}
               />
             </div>
           </div>

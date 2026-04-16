@@ -323,6 +323,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [confirmDraw, setConfirmDraw] = useState(false);
+  const { skipMatchConfirm } = useApp();
 
   const isDoubles = !!(match.player3_id || match.player4_id);
 
@@ -359,20 +360,22 @@ function ActiveMatchCard({ match }: { match: Match }) {
   }
 
   async function handleDraw() {
-    if (!confirmDraw) { setConfirmDraw(true); setConfirmVoid(false); return; }
+    if (!skipMatchConfirm && !confirmDraw) { setConfirmDraw(true); setConfirmVoid(false); return; }
     setDrawing(true);
+    setConfirmDraw(false);
     try { await api.drawMatch(match.id); }
     catch (e) { console.error(e); }
-    finally { setDrawing(false); setConfirmDraw(false); }
+    finally { setDrawing(false); }
   }
 
   async function handleVoid() {
-    if (!confirmVoid) { sounds.void(); setConfirmVoid(true); setConfirmDraw(false); return; }
+    if (!skipMatchConfirm && !confirmVoid) { sounds.void(); setConfirmVoid(true); setConfirmDraw(false); return; }
     setVoiding(true);
+    setConfirmVoid(false);
     sounds.void();
     try { await api.voidMatch(match.id); }
     catch (e) { console.error(e); }
-    finally { setVoiding(false); setConfirmVoid(false); }
+    finally { setVoiding(false); }
   }
 
   const p1Leading = p1Score > p2Score;

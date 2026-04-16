@@ -33,6 +33,8 @@ interface AppCtx {
   setSoundEnabled: (v: boolean) => void;
   hideElo: boolean;
   setHideElo: (v: boolean) => void;
+  skipMatchConfirm: boolean;
+  setSkipMatchConfirm: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppCtx>({
@@ -41,6 +43,7 @@ const AppContext = createContext<AppCtx>({
   theme: 'dark', setTheme: () => {},
   soundEnabled: true, setSoundEnabled: () => {},
   hideElo: false, setHideElo: () => {},
+  skipMatchConfirm: false, setSkipMatchConfirm: () => {},
 });
 
 export function useApp() {
@@ -63,6 +66,9 @@ export default function App() {
   const [soundEnabledState, setSoundEnabledState] = useState<boolean>(() => {
     return localStorage.getItem('pingtrack-sound') !== 'false';
   });
+  const [skipMatchConfirm, setSkipMatchConfirmState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-skip-match-confirm') === 'true';
+  });
   const [hideElo, setHideEloState] = useState<boolean>(() => {
     return localStorage.getItem('pingtrack-hide-elo') === 'true';
   });
@@ -81,6 +87,11 @@ export default function App() {
   const handleSetHideElo = (v: boolean) => {
     setHideEloState(v);
     localStorage.setItem('pingtrack-hide-elo', String(v));
+  };
+
+  const handleSetSkipMatchConfirm = (v: boolean) => {
+    setSkipMatchConfirmState(v);
+    localStorage.setItem('pingtrack-skip-match-confirm', String(v));
   };
 
   // Sync sound module with persisted preference on mount
@@ -151,6 +162,7 @@ export default function App() {
       theme, setTheme,
       soundEnabled: soundEnabledState, setSoundEnabled: handleSetSoundEnabled,
       hideElo, setHideElo: handleSetHideElo,
+      skipMatchConfirm, setSkipMatchConfirm: handleSetSkipMatchConfirm,
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
