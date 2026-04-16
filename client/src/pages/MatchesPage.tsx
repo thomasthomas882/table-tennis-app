@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sounds } from '../utils/sounds';
 import { useApp } from '../App';
 import { api } from '../api';
+import { socket } from '../socket';
 import { Match } from '../types';
 
 /** Parse SQLite UTC datetime string to a local Date object */
@@ -315,6 +316,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
   const [p2Score, setP2Score] = useState(match.player2_score);
   const [p1Flash, setP1Flash] = useState(false);
   const [p2Flash, setP2Flash] = useState(false);
+  const mountedRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [voiding, setVoiding] = useState(false);
@@ -323,6 +325,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
   const isDoubles = !!(match.player3_id || match.player4_id);
 
   useEffect(() => {
+    if (!mountedRef.current) return;
     setP1Score(match.player1_score);
     setP1Flash(true);
     const t = setTimeout(() => setP1Flash(false), 300);
@@ -330,6 +333,7 @@ function ActiveMatchCard({ match }: { match: Match }) {
   }, [match.player1_score]);
 
   useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
     setP2Score(match.player2_score);
     setP2Flash(true);
     const t = setTimeout(() => setP2Flash(false), 300);
@@ -504,12 +508,19 @@ export default function MatchesPage() {
   const [completed, setCompleted] = useState<Match[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
-  useEffect(() => {
+  function fetchCompleted() {
     api.getMatches('completed')
       .then((m) => setCompleted(m as Match[]))
       .catch(() => {})
       .finally(() => setLoadingHistory(false));
-  }, [activeMatches]);
+  }
+
+  // Initial load + refresh only when a match actually completes/voids
+  useEffect(() => {
+    fetchCompleted();
+    socket.on('match:completed', fetchCompleted);
+    return () => { socket.off('match:completed', fetchCompleted); };
+  }, []);
 
   return (
     <div className="space-y-8 animate-fade-in">

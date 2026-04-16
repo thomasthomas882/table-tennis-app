@@ -172,7 +172,8 @@ app.patch('/api/tables/reorder', (req, res) => {
 // ─── Matches ─────────────────────────────────────────────────────────────────
 
 function getMatches(status) {
-  const where = status ? `WHERE m.status = '${status}'` : '';
+  const where = status ? 'WHERE m.status = ?' : '';
+  const params = status ? [status] : [];
   return db.prepare(`
     SELECT m.*,
       p1.name as player1_name, p1.elo as player1_elo,
@@ -191,7 +192,7 @@ function getMatches(status) {
     ${where}
     ORDER BY m.created_at DESC
     LIMIT 100
-  `).all();
+  `).all(...params);
 }
 
 app.get('/api/matches', (req, res) => {
@@ -418,19 +419,21 @@ app.post('/api/matches/:id/complete', (req, res) => {
       // Doubles: update elo_doubles, doubles_wins/losses only (no streak tracking)
       winnerIds.forEach(id => {
         const p = db.prepare('SELECT elo_doubles FROM players WHERE id = ?').get(id);
-        const newElo = p.elo_doubles + winnerDelta;
+        const newElo = Math.max(100, p.elo_doubles + winnerDelta);
+        const actualDelta = newElo - p.elo_doubles;
         db.prepare('UPDATE players SET doubles_wins = doubles_wins + 1, elo_doubles = ? WHERE id = ?')
           .run(newElo, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
-          .run(id, newElo, winnerDelta, match.id, 'doubles');
+          .run(id, newElo, actualDelta, match.id, 'doubles');
       });
       loserIds.forEach(id => {
         const p = db.prepare('SELECT elo_doubles FROM players WHERE id = ?').get(id);
-        const newElo = p.elo_doubles + loserDelta;
+        const newElo = Math.max(100, p.elo_doubles + loserDelta);
+        const actualDelta = newElo - p.elo_doubles;
         db.prepare('UPDATE players SET doubles_losses = doubles_losses + 1, elo_doubles = ? WHERE id = ?')
           .run(newElo, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
-          .run(id, newElo, loserDelta, match.id, 'doubles');
+          .run(id, newElo, actualDelta, match.id, 'doubles');
       });
     } else {
       // Singles: update elo, wins/losses, and streaks
@@ -512,7 +515,7 @@ app.delete('/api/matches/:id/history', (req, res) => {
   try {
     db.exec('DELETE FROM elo_history');
     db.prepare('DELETE FROM matches WHERE id = ?').run(match.id);
-    db.exec('UPDATE players SET elo=1000, elo_doubles=1000, wins=0, losses=0, doubles_wins=0, doubles_losses=0, current_streak=0, best_streak=0');
+    db.exec('UPDATE players SET elo=1000, elo_doubles=1000, wins=0, losses=0, doubles_wins=0, doubles_losses=0, current_streak=0, best_streak=0, current_losing_streak=0');
 
     const remaining = db.prepare("SELECT * FROM matches WHERE status='completed' ORDER BY completed_at ASC").all();
 
@@ -706,7 +709,7 @@ app.post('/api/players/:id/reset-elo', (req, res) => {
 
   db.prepare(`UPDATE players SET elo = 1000, elo_doubles = 1000,
     wins = 0, losses = 0, doubles_wins = 0, doubles_losses = 0,
-    current_streak = 0, best_streak = 0 WHERE id = ?`).run(pid);
+    current_streak = 0, best_streak = 0, current_losing_streak = 0 WHERE id = ?`).run(pid);
   db.prepare('DELETE FROM elo_history WHERE player_id = ?').run(pid);
 
   const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
@@ -719,7 +722,7 @@ app.post('/api/players/:id/reset-elo', (req, res) => {
 // ─── Reset ELO only ──────────────────────────────────────────────────────────
 
 app.post('/api/reset-elo', (req, res) => {
-  db.exec('UPDATE players SET elo = 1000, elo_doubles = 1000, wins = 0, losses = 0, doubles_wins = 0, doubles_losses = 0, current_streak = 0, best_streak = 0');
+  db.exec('UPDATE players SET elo = 1000, elo_doubles = 1000, wins = 0, losses = 0, doubles_wins = 0, doubles_losses = 0, current_streak = 0, best_streak = 0, current_losing_streak = 0');
   db.exec('DELETE FROM elo_history');
   const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
   broadcast('players:updated', players);
