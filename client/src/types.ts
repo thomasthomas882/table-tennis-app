@@ -79,6 +79,7 @@ export interface Match {
   player2_score: number;
   winner_id: number | null;
   winner_name: string | null;
+  series_id: number | null;
   status: 'in_progress' | 'completed';
   created_at: string;
   completed_at: string | null;
@@ -104,4 +105,23 @@ export interface Stats {
   totalMatches: number;
   activeMatches: number;
   queueLength: number;
+  todayMatches: number;
+  topPlayerToday: { name: string; count: number } | null;
+  biggestSwingToday: { name: string; delta: number } | null;
+}
+
+export interface Series {
+  id: number;
+  player1_id: number;
+  player1_name: string;
+  player2_id: number;
+  player2_name: string;
+  format: number;
+  wins1: number;
+  wins2: number;
+  status: 'active' | 'completed';
+  winner_id: number | null;
+  winner_name: string | null;
+  created_at: string;
+  completed_at: string | null;
 }

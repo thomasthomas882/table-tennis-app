@@ -71,6 +71,33 @@ export default function Dashboard() {
           gradient="bg-green-500/15 text-green-400" delay="180ms"/>
       </div>
 
+      {/* Today's Session */}
+      {(stats?.todayMatches ?? 0) > 0 && (
+        <div className="card border-green-500/20 bg-green-500/5 animate-slide-up">
+          <h2 className="font-semibold text-sm text-green-400 mb-3 flex items-center gap-2">
+            <span>📅</span> Today's Session
+          </h2>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{stats?.todayMatches ?? 0}</p>
+              <p className="text-xs text-secondary mt-0.5">Matches played</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold truncate">{stats?.topPlayerToday?.name?.split(' ')[0] ?? '—'}</p>
+              <p className="text-xs text-secondary mt-0.5">Most active ({stats?.topPlayerToday?.count ?? 0})</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-green-400">
+                {stats?.biggestSwingToday ? `+${stats.biggestSwingToday.delta}` : '—'}
+              </p>
+              <p className="text-xs text-secondary mt-0.5">
+                {stats?.biggestSwingToday ? `Best gain (${stats.biggestSwingToday.name.split(' ')[0]})` : 'Top ELO gain'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Active Matches */}
         <div className="space-y-3">

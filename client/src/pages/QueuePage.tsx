@@ -2,6 +2,21 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
 import { Player, Table } from '../types';
+
+function formatWaitTime(joinedAt: string): string {
+  const joined = new Date(
+    joinedAt.includes('T')
+      ? joinedAt + (joinedAt.endsWith('Z') ? '' : 'Z')
+      : joinedAt.replace(' ', 'T') + 'Z'
+  );
+  const diffMs = Date.now() - joined.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m`;
+  const hours = Math.floor(diffMin / 60);
+  const mins = diffMin % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
 import { SearchableSelect } from '../components/SearchableSelect';
 import { sounds } from '../utils/sounds';
 import { useTouchSort } from '../utils/useTouchSort';
@@ -299,6 +314,13 @@ export default function QueuePage() {
   const [addLoading, setAddLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ── Clock tick for wait times (every 30s) ──────────────────
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // ── Derived ────────────────────────────────────────────────────
   const queuedIds = new Set(queue.map(q => q.player_id));
   const activeIds = new Set([
@@ -590,6 +612,7 @@ export default function QueuePage() {
                         <p className="font-medium text-base truncate">{entry.name}</p>
                         <p className="text-sm text-muted">
                           {!hideElo && <>ELO {entry.elo}</>}
+                          <span className={hideElo ? '' : 'ml-2'}>⏳ {formatWaitTime(entry.joined_at)}</span>
                           {stagedOnTable && (
                             <span className="ml-2 text-blue-400">📍 {stagedOnTable.name}</span>
                           )}

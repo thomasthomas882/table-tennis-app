@@ -331,11 +331,21 @@ app.post('/api/matches/start', (req, res) => {
   const players = ids.map(id => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
   if (players.some(p => !p)) return res.status(404).json({ error: 'Player not found' });
 
+  // Auto-link singles match to an active series between these two players
+  let seriesId = null;
+  if (!player3_id && !player4_id) {
+    const activeSeries = db.prepare(`
+      SELECT id FROM series WHERE status='active'
+      AND ((player1_id=? AND player2_id=?) OR (player1_id=? AND player2_id=?))
+    `).get(player1_id, player2_id, player2_id, player1_id);
+    seriesId = activeSeries?.id ?? null;
+  }
+
   db.exec('BEGIN');
   try {
     const result = db.prepare(
-      'INSERT INTO matches (player1_id, player2_id, player3_id, player4_id, table_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(player1_id, player2_id, player3_id || null, player4_id || null, table_id || null);
+      'INSERT INTO matches (player1_id, player2_id, player3_id, player4_id, table_id, series_id) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(player1_id, player2_id, player3_id || null, player4_id || null, table_id || null, seriesId);
 
     const placeholders = ids.map(() => '?').join(',');
     db.prepare(`DELETE FROM queue WHERE player_id IN (${placeholders})`).run(...ids);
@@ -470,6 +480,28 @@ app.post('/api/matches/:id/complete', (req, res) => {
       } catch (_) { /* already in queue */ }
     });
 
+    // Update series if this match belongs to one
+    if (match.series_id) {
+      const series = db.prepare('SELECT * FROM series WHERE id = ?').get(match.series_id);
+      if (series && series.status === 'active') {
+        const isP1Winner = winner_id === series.player1_id;
+        if (isP1Winner) {
+          db.prepare('UPDATE series SET wins1 = wins1 + 1 WHERE id = ?').run(series.id);
+        } else {
+          db.prepare('UPDATE series SET wins2 = wins2 + 1 WHERE id = ?').run(series.id);
+        }
+        const updated = db.prepare('SELECT * FROM series WHERE id = ?').get(series.id);
+        const needed = Math.ceil(updated.format / 2);
+        if (updated.wins1 >= needed || updated.wins2 >= needed) {
+          const seriesWinnerId = updated.wins1 >= needed ? series.player1_id : series.player2_id;
+          db.prepare("UPDATE series SET status='completed', winner_id=?, completed_at=datetime('now') WHERE id=?")
+            .run(seriesWinnerId, series.id);
+          const swName = db.prepare('SELECT name FROM players WHERE id=?').get(seriesWinnerId)?.name ?? '';
+          notify(`${swName} won the Best of ${updated.format} series! 🏆`, 'success');
+        }
+      }
+    }
+
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
@@ -480,6 +512,7 @@ app.post('/api/matches/:id/complete', (req, res) => {
   broadcast('match:completed', completedMatch);
   broadcast('tables:updated', getTables());
   broadcast('queue:updated', getQueue());
+  broadcast('series:updated', getSeries());
   broadcast('leaderboard:updated', db.prepare('SELECT * FROM players ORDER BY elo DESC').all());
 
   const winnerName = winnerPlayers.map(p => p.name).join(' & ');
@@ -672,14 +705,91 @@ app.get('/api/leaderboard', (req, res) => {
   }
 });
 
+// ─── Series ──────────────────────────────────────────────────────────────────
+
+function getSeries(statusFilter) {
+  const where = statusFilter ? 'WHERE s.status = ?' : '';
+  const params = statusFilter ? [statusFilter] : [];
+  return db.prepare(`
+    SELECT s.*, p1.name as player1_name, p2.name as player2_name,
+           pw.name as winner_name
+    FROM series s
+    JOIN players p1 ON s.player1_id = p1.id
+    JOIN players p2 ON s.player2_id = p2.id
+    LEFT JOIN players pw ON s.winner_id = pw.id
+    ${where}
+    ORDER BY s.created_at DESC
+  `).all(...params);
+}
+
+app.get('/api/series', (req, res) => {
+  const status = req.query.status;
+  res.json(getSeries(status));
+});
+
+app.post('/api/series', (req, res) => {
+  const { player1_id, player2_id, format } = req.body;
+  if (!player1_id || !player2_id) return res.status(400).json({ error: 'Two players required' });
+  if (player1_id === player2_id) return res.status(400).json({ error: 'Players must be different' });
+  if (![3, 5, 7].includes(Number(format))) return res.status(400).json({ error: 'Format must be 3, 5, or 7' });
+
+  const p1 = db.prepare('SELECT * FROM players WHERE id = ?').get(player1_id);
+  const p2 = db.prepare('SELECT * FROM players WHERE id = ?').get(player2_id);
+  if (!p1 || !p2) return res.status(404).json({ error: 'Player not found' });
+
+  const existing = db.prepare(`
+    SELECT id FROM series WHERE status='active'
+    AND ((player1_id=? AND player2_id=?) OR (player1_id=? AND player2_id=?))
+  `).get(player1_id, player2_id, player2_id, player1_id);
+  if (existing) return res.status(409).json({ error: 'An active series between these players already exists' });
+
+  const result = db.prepare('INSERT INTO series (player1_id, player2_id, format) VALUES (?, ?, ?)')
+    .run(player1_id, player2_id, Number(format));
+  const series = getSeries().find(s => s.id === result.lastInsertRowid);
+  broadcast('series:updated', getSeries());
+  notify(`Best of ${format} series started: ${p1.name} vs ${p2.name}`, 'info');
+  res.status(201).json(series);
+});
+
+app.delete('/api/series/:id', (req, res) => {
+  const series = db.prepare('SELECT * FROM series WHERE id = ?').get(req.params.id);
+  if (!series) return res.status(404).json({ error: 'Series not found' });
+  db.prepare('UPDATE matches SET series_id = NULL WHERE series_id = ?').run(series.id);
+  db.prepare('DELETE FROM series WHERE id = ?').run(series.id);
+  broadcast('series:updated', getSeries());
+  res.json({ ok: true });
+});
+
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
 app.get('/api/stats', (req, res) => {
+  const todayMatches = db.prepare(
+    "SELECT COUNT(*) as c FROM matches WHERE status='completed' AND date(completed_at)=date('now')"
+  ).get().c;
+
+  const topPlayerRow = db.prepare(`
+    SELECT p.name, COUNT(m.id) as count
+    FROM players p
+    JOIN matches m ON (p.id=m.player1_id OR p.id=m.player2_id OR p.id=m.player3_id OR p.id=m.player4_id)
+    WHERE m.status='completed' AND date(m.completed_at)=date('now')
+    GROUP BY p.id ORDER BY count DESC LIMIT 1
+  `).get();
+
+  const swingRow = db.prepare(`
+    SELECT p.name, eh.elo_delta as delta
+    FROM elo_history eh JOIN players p ON eh.player_id=p.id
+    WHERE date(eh.created_at)=date('now') AND eh.elo_delta > 0
+    ORDER BY eh.elo_delta DESC LIMIT 1
+  `).get();
+
   res.json({
     totalPlayers: db.prepare('SELECT COUNT(*) as c FROM players').get().c,
     totalMatches: db.prepare("SELECT COUNT(*) as c FROM matches WHERE status = 'completed'").get().c,
     activeMatches: db.prepare("SELECT COUNT(*) as c FROM matches WHERE status = 'in_progress'").get().c,
     queueLength: db.prepare('SELECT COUNT(*) as c FROM queue').get().c,
+    todayMatches,
+    topPlayerToday: topPlayerRow ? { name: topPlayerRow.name, count: topPlayerRow.count } : null,
+    biggestSwingToday: swingRow ? { name: swingRow.name, delta: swingRow.delta } : null,
   });
 });
 
