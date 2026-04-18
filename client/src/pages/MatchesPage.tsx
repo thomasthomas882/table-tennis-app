@@ -613,22 +613,27 @@ function SeriesCard({ series, onCancel }: { series: Series; onCancel: (id: numbe
   );
 }
 
-function StartSeriesModal({ players, onClose, onCreate }: {
+function StartSeriesModal({ players, tables, onClose, onCreate }: {
   players: { id: number; name: string }[];
+  tables: { id: number; name: string; status: string }[];
   onClose: () => void;
-  onCreate: (p1: number, p2: number, format: number) => Promise<void>;
+  onCreate: (p1: number, p2: number, format: number, tableId: number) => Promise<void>;
 }) {
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
   const [format, setFormat] = useState(3);
+  const [tableId, setTableId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const availableTables = tables.filter(t => t.status === 'available');
+
   async function handleCreate() {
     if (!p1 || !p2 || p1 === p2) { setError('Select two different players'); return; }
+    if (!tableId) { setError('Select a table'); return; }
     setLoading(true); setError('');
     try {
-      await onCreate(Number(p1), Number(p2), format);
+      await onCreate(Number(p1), Number(p2), format, Number(tableId));
       onClose();
     } catch (e: any) {
       setError(e.message);
@@ -669,6 +674,18 @@ function StartSeriesModal({ players, onClose, onCreate }: {
             </select>
           </div>
           <div>
+            <label className="block text-xs text-secondary mb-1 font-medium">Table</label>
+            <select value={tableId} onChange={e => setTableId(e.target.value)} className="input w-full">
+              <option value="">Select table…</option>
+              {availableTables.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            {availableTables.length === 0 && (
+              <p className="text-xs text-muted mt-1">No tables available right now</p>
+            )}
+          </div>
+          <div>
             <label className="block text-xs text-secondary mb-1 font-medium">Format</label>
             <div className="flex gap-2">
               {[3, 5, 7].map(f => (
@@ -690,7 +707,7 @@ function StartSeriesModal({ players, onClose, onCreate }: {
 
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={handleCreate} disabled={loading || !p1 || !p2 || p1 === p2}
+          <button onClick={handleCreate} disabled={loading || !p1 || !p2 || p1 === p2 || !tableId}
             className="btn-primary flex-1">
             {loading ? 'Starting…' : 'Start Series'}
           </button>
@@ -701,7 +718,7 @@ function StartSeriesModal({ players, onClose, onCreate }: {
 }
 
 export default function MatchesPage() {
-  const { activeMatches, players } = useApp();
+  const { activeMatches, players, tables } = useApp();
   const [completed, setCompleted] = useState<Match[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [series, setSeries] = useState<Series[]>([]);
@@ -726,8 +743,8 @@ export default function MatchesPage() {
     };
   }, []);
 
-  async function handleCreateSeries(p1: number, p2: number, format: number) {
-    await api.createSeries(p1, p2, format);
+  async function handleCreateSeries(p1: number, p2: number, format: number, tableId: number) {
+    await api.createSeries(p1, p2, format, tableId);
   }
 
   async function handleCancelSeries(id: number) {
@@ -815,6 +832,7 @@ export default function MatchesPage() {
       {showSeriesModal && (
         <StartSeriesModal
           players={sortedPlayers}
+          tables={tables}
           onClose={() => setShowSeriesModal(false)}
           onCreate={handleCreateSeries}
         />

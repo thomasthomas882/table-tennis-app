@@ -420,6 +420,9 @@ app.post('/api/matches/:id/complete', (req, res) => {
   const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
   const ratingType = isDoubles ? 'doubles' : 'singles';
 
+  let seriesContinues = false;
+  let nextMatchId = null;
+
   db.exec('BEGIN');
   try {
     db.prepare(`UPDATE matches SET status = 'completed', winner_id = ?, completed_at = datetime('now') WHERE id = ?`)
@@ -468,19 +471,7 @@ app.post('/api/matches/:id/complete', (req, res) => {
       });
     }
 
-    if (match.table_id) {
-      db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
-    }
-
-    // Auto re-queue all match players
-    const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
-    allPlayerIds.forEach((pid, i) => {
-      try {
-        db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
-      } catch (_) { /* already in queue */ }
-    });
-
-    // Update series if this match belongs to one
+    // Update series wins and decide whether to auto-start next game or free the table
     if (match.series_id) {
       const series = db.prepare('SELECT * FROM series WHERE id = ?').get(match.series_id);
       if (series && series.status === 'active') {
@@ -493,13 +484,35 @@ app.post('/api/matches/:id/complete', (req, res) => {
         const updated = db.prepare('SELECT * FROM series WHERE id = ?').get(series.id);
         const needed = Math.ceil(updated.format / 2);
         if (updated.wins1 >= needed || updated.wins2 >= needed) {
+          // Series complete — mark it done
           const seriesWinnerId = updated.wins1 >= needed ? series.player1_id : series.player2_id;
           db.prepare("UPDATE series SET status='completed', winner_id=?, completed_at=datetime('now') WHERE id=?")
             .run(seriesWinnerId, series.id);
           const swName = db.prepare('SELECT name FROM players WHERE id=?').get(seriesWinnerId)?.name ?? '';
           notify(`${swName} won the Best of ${updated.format} series! 🏆`, 'success');
+        } else {
+          // Series continues — auto-start next game on the same table
+          seriesContinues = true;
+          const nr = db.prepare(
+            'INSERT INTO matches (player1_id, player2_id, table_id, series_id) VALUES (?, ?, ?, ?)'
+          ).run(match.player1_id, match.player2_id, match.table_id, match.series_id);
+          nextMatchId = nr.lastInsertRowid;
+          // Table stays occupied — don't free it
         }
       }
+    }
+
+    if (!seriesContinues) {
+      // Normal flow: free the table and re-queue players
+      if (match.table_id) {
+        db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
+      }
+      const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+      allPlayerIds.forEach((pid, i) => {
+        try {
+          db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+        } catch (_) { /* already in queue */ }
+      });
     }
 
     db.exec('COMMIT');
@@ -514,6 +527,11 @@ app.post('/api/matches/:id/complete', (req, res) => {
   broadcast('queue:updated', getQueue());
   broadcast('series:updated', getSeries());
   broadcast('leaderboard:updated', db.prepare('SELECT * FROM players ORDER BY elo DESC').all());
+
+  if (seriesContinues && nextMatchId) {
+    const nextMatch = getMatches().find(m => m.id === nextMatchId);
+    broadcast('match:started', nextMatch);
+  }
 
   const winnerName = winnerPlayers.map(p => p.name).join(' & ');
   const loserName  = loserPlayers.map(p => p.name).join(' & ');
@@ -728,14 +746,19 @@ app.get('/api/series', (req, res) => {
 });
 
 app.post('/api/series', (req, res) => {
-  const { player1_id, player2_id, format } = req.body;
+  const { player1_id, player2_id, format, table_id } = req.body;
   if (!player1_id || !player2_id) return res.status(400).json({ error: 'Two players required' });
   if (player1_id === player2_id) return res.status(400).json({ error: 'Players must be different' });
   if (![3, 5, 7].includes(Number(format))) return res.status(400).json({ error: 'Format must be 3, 5, or 7' });
+  if (!table_id) return res.status(400).json({ error: 'Table is required' });
 
   const p1 = db.prepare('SELECT * FROM players WHERE id = ?').get(player1_id);
   const p2 = db.prepare('SELECT * FROM players WHERE id = ?').get(player2_id);
   if (!p1 || !p2) return res.status(404).json({ error: 'Player not found' });
+
+  const table = db.prepare('SELECT * FROM tables_tt WHERE id = ?').get(table_id);
+  if (!table) return res.status(404).json({ error: 'Table not found' });
+  if (table.status === 'occupied') return res.status(409).json({ error: 'Table is already in use' });
 
   const existing = db.prepare(`
     SELECT id FROM series WHERE status='active'
@@ -743,11 +766,40 @@ app.post('/api/series', (req, res) => {
   `).get(player1_id, player2_id, player2_id, player1_id);
   if (existing) return res.status(409).json({ error: 'An active series between these players already exists' });
 
-  const result = db.prepare('INSERT INTO series (player1_id, player2_id, format) VALUES (?, ?, ?)')
-    .run(player1_id, player2_id, Number(format));
-  const series = getSeries().find(s => s.id === result.lastInsertRowid);
+  // Create series and auto-start the first match in one transaction
+  let seriesId, matchId;
+  db.exec('BEGIN');
+  try {
+    const seriesResult = db.prepare('INSERT INTO series (player1_id, player2_id, format) VALUES (?, ?, ?)')
+      .run(player1_id, player2_id, Number(format));
+    seriesId = seriesResult.lastInsertRowid;
+
+    // Start game 1 immediately
+    const matchResult = db.prepare(
+      'INSERT INTO matches (player1_id, player2_id, table_id, series_id) VALUES (?, ?, ?, ?)'
+    ).run(player1_id, player2_id, table_id, seriesId);
+    matchId = matchResult.lastInsertRowid;
+
+    // Remove both players from queue if they're in it
+    db.prepare('DELETE FROM queue WHERE player_id = ? OR player_id = ?').run(player1_id, player2_id);
+
+    // Mark table occupied
+    db.prepare("UPDATE tables_tt SET status = 'occupied' WHERE id = ?").run(table_id);
+
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to start series' });
+  }
+
+  const series = getSeries().find(s => s.id === seriesId);
+  const newMatch = getMatches().find(m => m.id === matchId);
+
   broadcast('series:updated', getSeries());
-  notify(`Best of ${format} series started: ${p1.name} vs ${p2.name}`, 'info');
+  broadcast('match:started', newMatch);
+  broadcast('queue:updated', getQueue());
+  broadcast('tables:updated', getTables());
+  notify(`Best of ${format} series started: ${p1.name} vs ${p2.name} on ${table.name}`, 'match');
   res.status(201).json(series);
 });
 

@@ -74,8 +74,8 @@ export const api = {
 
   // Series
   getSeries: (status?: string) => request(`/series${status ? `?status=${status}` : ''}`),
-  createSeries: (player1_id: number, player2_id: number, format: number) =>
-    request('/series', { method: 'POST', body: JSON.stringify({ player1_id, player2_id, format }) }),
+  createSeries: (player1_id: number, player2_id: number, format: number, table_id?: number) =>
+    request('/series', { method: 'POST', body: JSON.stringify({ player1_id, player2_id, format, table_id }) }),
   cancelSeries: (id: number) => request(`/series/${id}`, { method: 'DELETE' }),
 
   // Admin
