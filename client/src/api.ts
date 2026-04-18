@@ -56,9 +56,12 @@ export const api = {
   // Stats
   getStats: () => request('/stats'),
 
-  // Match history (paginated)
-  getMatchHistory: (page = 1, limit = 20) =>
-    request(`/matches/history?page=${page}&limit=${limit}`),
+  // Match history (paginated, optional player filter)
+  getMatchHistory: (page = 1, limit = 20, playerId?: number) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (playerId) params.set('player_id', String(playerId));
+    return request(`/matches/history?${params}`);
+  },
 
   // Player stats
   getPlayerStats: (id: number) => request(`/players/${id}/stats`),

@@ -102,6 +102,13 @@ db.exec(`
   )
 `);
 
+// Indexes for high-frequency query columns
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status)'); } catch (_) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_matches_players ON matches(player1_id, player2_id)'); } catch (_) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_matches_series ON matches(series_id)'); } catch (_) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_elo_history_player ON elo_history(player_id)'); } catch (_) {}
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_elo_history_match ON elo_history(match_id)'); } catch (_) {}
+
 // Seed default tables if empty
 const tableCount = db.prepare('SELECT COUNT(*) as c FROM tables_tt').get().c;
 if (tableCount === 0) {

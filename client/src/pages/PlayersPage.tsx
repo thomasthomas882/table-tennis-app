@@ -13,8 +13,7 @@ export default function PlayersPage() {
 
   const queuedIds = new Set(queue.map(q => q.player_id));
   const activeIds = new Set([
-    ...activeMatches.map(m => m.player1_id),
-    ...activeMatches.map(m => m.player2_id),
+    ...activeMatches.flatMap(m => [m.player1_id, m.player2_id, m.player3_id, m.player4_id].filter(Boolean)),
   ]);
 
   async function addPlayer(e: React.FormEvent) {

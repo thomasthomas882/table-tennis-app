@@ -9,6 +9,7 @@ export interface Player {
   doubles_losses: number;
   current_streak: number;
   best_streak: number;
+  current_losing_streak: number;
   created_at: string;
   total_games?: number;
   win_rate?: number;

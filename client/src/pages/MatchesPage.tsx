@@ -735,11 +735,12 @@ export default function MatchesPage() {
   useEffect(() => {
     fetchCompleted();
     api.getSeries().then(s => setSeries(s as Series[])).catch(() => {});
+    const onSeriesUpdated = (s: Series[]) => setSeries(s);
     socket.on('match:completed', fetchCompleted);
-    socket.on('series:updated', (s: Series[]) => setSeries(s));
+    socket.on('series:updated', onSeriesUpdated);
     return () => {
       socket.off('match:completed', fetchCompleted);
-      socket.off('series:updated');
+      socket.off('series:updated', onSeriesUpdated);
     };
   }, []);
 

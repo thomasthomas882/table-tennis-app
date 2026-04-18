@@ -255,7 +255,7 @@ export default function PlayerProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate">{player.name}</h1>
-            <p className="text-muted text-sm mt-0.5">Member since {new Date(player.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}</p>
+            <p className="text-muted text-sm mt-0.5">Member since {parseUTC(player.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}</p>
             <div className="flex flex-wrap gap-5 mt-3">
               {/* Singles stats */}
               <div className="border-r border-theme pr-5">
@@ -414,7 +414,7 @@ export default function PlayerProfilePage() {
           {achievements.map(a => {
             const earned = !!a.earnedAt;
             const dateStr = earned && a.earnedAt !== 'active'
-              ? new Date(a.earnedAt!).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+              ? parseUTC(a.earnedAt!).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
               : null;
             return (
               <div key={a.id} className="relative group flex flex-col items-center">

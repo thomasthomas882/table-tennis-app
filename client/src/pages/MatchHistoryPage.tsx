@@ -61,19 +61,13 @@ export default function MatchHistoryPage() {
 
   useEffect(() => {
     setLoading(true);
-    api.getMatchHistory(page, 25)
+    api.getMatchHistory(page, 25, filterPlayer ? Number(filterPlayer) : undefined)
       .then(d => setData(d as HistoryPage))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, filterPlayer]);
 
-  const matches: Match[] = data?.matches ?? [];
-  const filtered = filterPlayer
-    ? matches.filter(m =>
-        [m.player1_id, m.player2_id, m.player3_id, m.player4_id]
-          .includes(Number(filterPlayer))
-      )
-    : matches;
+  const filtered: Match[] = data?.matches ?? [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -132,8 +126,7 @@ export default function MatchHistoryPage() {
             </table>
           </div>
 
-          {/* Pagination — only show when not filtered (client-side filter within the page) */}
-          {!filterPlayer && data && data.pages > 1 && (
+          {data && data.pages > 1 && (
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
