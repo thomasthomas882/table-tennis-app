@@ -8,14 +8,17 @@ import { sounds } from '../utils/sounds';
 const APP_GUIDE_STEPS = [
   { icon: '👤', title: 'Add Players', desc: 'Go to the Players tab and add every club member by name. Each player starts at 1000 ELO.' },
   { icon: '🏓', title: 'Set Up Tables', desc: 'In Settings → Tables, add the tables at your venue (e.g. "Table 1", "Main Table").' },
-  { icon: '⏳', title: 'Build the Queue', desc: 'Go to the Queue tab. Search for players and click + to add them to the waiting list. Drag rows to reorder.' },
+  { icon: '⏳', title: 'Build the Queue', desc: 'Go to the Queue tab. Search for players and click + to add them to the waiting list. Drag rows to reorder. Each entry shows how long the player has been waiting.' },
   { icon: '▶', title: 'Start a Match', desc: 'Drag players from the queue onto a table card — left side and right side. Hit "Start Match". Supports singles (1v1) and doubles (2v2).' },
-  { icon: '✓', title: 'Complete a Match', desc: 'In the Matches tab, click "Complete" on an active match. Enter the score and pick the winner — ELO updates automatically.' },
-  { icon: '🏆', title: 'Check the Leaderboard', desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, win rate, and current win streaks are all tracked.' },
-  { icon: '⊞', title: 'Dashboard Overview', desc: 'The Dashboard shows active matches with live timers, the current queue, and recent results at a glance.' },
-  { icon: '🔍', title: 'Player Profiles', desc: 'Click any player card on the Players tab to open their full profile — ELO progression chart, head-to-head record vs every opponent, and their last 10 matches.' },
-  { icon: '📋', title: 'Match History', desc: 'The History tab shows every completed match with dates, scores, and players. Use the filter to look up all matches for a specific person.' },
+  { icon: '✓', title: 'Complete a Match', desc: 'In the Matches tab, click "Complete" on an active match. Enter the score and pick the winner — ELO updates automatically. You can also record a Draw (no ELO change) or Void the match to cancel it — either way players are returned to the queue.' },
+  { icon: '🔗', title: 'Best-of Series', desc: 'In the Matches tab, click "Start Series" to run a Best of 3, 5, or 7 between two players on a chosen table. Games auto-advance and ELO updates after each game. Cancel a series at any time to return players to the queue.' },
+  { icon: '🏆', title: 'Check the Leaderboard', desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, win rate, and current win streaks are all tracked. Switch between Singles and Doubles rankings.' },
+  { icon: '⊞', title: 'Dashboard Overview', desc: 'The Dashboard shows live match scores, the current queue, today\'s session stats (matches played, most active player, biggest ELO gain), and the top 5 players at a glance.' },
+  { icon: '🔍', title: 'Player Profiles', desc: 'Click any player card on the Players tab to open their full profile — ELO progression chart, head-to-head record vs every opponent, recent matches, and achievements. You can also reset an individual player\'s ELO from their profile.' },
+  { icon: '📋', title: 'Match History', desc: 'The History tab shows every completed match with dates, scores, and players. Filter by player to see their full record. You can delete individual matches from history — all ratings recalculate automatically.' },
+  { icon: '🏅', title: 'Achievements', desc: 'Players earn achievements automatically — for win streaks, ELO milestones, upsets, bagels, and more. View them on any player\'s profile page.' },
   { icon: '🔥', title: 'Win Streaks', desc: 'Win streaks are tracked automatically. Current streak and all-time best appear on player cards and the leaderboard. A 🔥 appears when a player is on a streak.' },
+  { icon: '💾', title: 'Backup Your Data', desc: 'Go to Settings → Data & Backup. Export a JSON backup regularly and store it somewhere safe — if the machine is lost, so is your data. You can restore from a JSON backup at any time.' },
 ];
 
 // ─── ELO Guide ───────────────────────────────────────────────────────────────
