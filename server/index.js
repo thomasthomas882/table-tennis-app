@@ -48,7 +48,12 @@ app.post('/api/players', (req, res) => {
 app.delete('/api/players/:id', (req, res) => {
   const player = db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id);
   if (!player) return res.status(404).json({ error: 'Player not found' });
-  db.prepare('DELETE FROM players WHERE id = ?').run(req.params.id);
+  try {
+    db.prepare('DELETE FROM players WHERE id = ?').run(req.params.id);
+  } catch (e) {
+    if (e.message.includes('FOREIGN KEY')) return res.status(409).json({ error: 'Cannot delete player: they have match history. Reset all data first.' });
+    return res.status(500).json({ error: 'Server error' });
+  }
   broadcast('players:updated', db.prepare('SELECT * FROM players ORDER BY elo DESC').all());
   res.json({ ok: true });
 });
@@ -143,7 +148,12 @@ app.post('/api/tables', (req, res) => {
 });
 
 app.delete('/api/tables/:id', (req, res) => {
-  db.prepare('DELETE FROM tables_tt WHERE id = ?').run(req.params.id);
+  try {
+    db.prepare('DELETE FROM tables_tt WHERE id = ?').run(req.params.id);
+  } catch (e) {
+    if (e.message.includes('FOREIGN KEY')) return res.status(409).json({ error: 'Cannot delete table: it has match history.' });
+    return res.status(500).json({ error: 'Server error' });
+  }
   broadcast('tables:updated', getTables());
   res.json({ ok: true });
 });
@@ -275,6 +285,7 @@ app.get('/api/players/:id/stats', (req, res) => {
 
   const h2hMap = {};
   for (const m of allMatches) {
+    if (m.winner_id === null) continue; // draws don't count as wins or losses
     // determine which team the player is on
     const onTeam1 = m.player1_id === pid || m.player3_id === pid;
     const team1Won = m.winner_id === m.player1_id;
@@ -331,6 +342,22 @@ app.post('/api/matches/start', (req, res) => {
   const players = ids.map(id => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
   if (players.some(p => !p)) return res.status(404).json({ error: 'Player not found' });
 
+  // Prevent players already in an active match from being added to another
+  const placeholdersCheck = ids.map(() => '?').join(',');
+  const busyPlayer = db.prepare(`
+    SELECT player1_id, player2_id, player3_id, player4_id FROM matches
+    WHERE status = 'in_progress'
+    AND (player1_id IN (${placeholdersCheck}) OR player2_id IN (${placeholdersCheck})
+      OR player3_id IN (${placeholdersCheck}) OR player4_id IN (${placeholdersCheck}))
+    LIMIT 1
+  `).get(...ids, ...ids, ...ids, ...ids);
+  if (busyPlayer) return res.status(409).json({ error: 'One or more players are already in an active match' });
+
+  if (table_id) {
+    const table = db.prepare('SELECT id FROM tables_tt WHERE id = ?').get(table_id);
+    if (!table) return res.status(404).json({ error: 'Table not found' });
+  }
+
   // Auto-link singles match to an active series between these two players
   let seriesId = null;
   if (!player3_id && !player4_id) {
@@ -357,7 +384,7 @@ app.post('/api/matches/start', (req, res) => {
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
-    throw e;
+    return res.status(500).json({ error: 'Failed to start match' });
   }
 
   const match = getMatches()[0];
@@ -377,8 +404,14 @@ app.patch('/api/matches/:id/score', (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'in_progress'").get(req.params.id);
   if (!match) return res.status(404).json({ error: 'Active match not found' });
 
+  const s1 = player1_score ?? match.player1_score;
+  const s2 = player2_score ?? match.player2_score;
+  if (!Number.isInteger(s1) || s1 < 0 || !Number.isInteger(s2) || s2 < 0) {
+    return res.status(400).json({ error: 'Scores must be non-negative integers' });
+  }
+
   db.prepare('UPDATE matches SET player1_score = ?, player2_score = ? WHERE id = ?')
-    .run(player1_score ?? match.player1_score, player2_score ?? match.player2_score, match.id);
+    .run(s1, s2, match.id);
 
   const updated = getMatches('in_progress').find(m => m.id === match.id);
   broadcast('match:scoreUpdated', updated);
@@ -452,22 +485,24 @@ app.post('/api/matches/:id/complete', (req, res) => {
       // Singles: update elo, wins/losses, and streaks
       winnerIds.forEach(id => {
         const p = db.prepare('SELECT elo, current_streak, best_streak FROM players WHERE id = ?').get(id);
-        const newElo = p.elo + winnerDelta;
+        const newElo = Math.max(100, p.elo + winnerDelta);
+        const actualDelta = newElo - p.elo;
         const newStreak = (p.current_streak >= 0 ? p.current_streak : 0) + 1;
         const newBest = Math.max(p.best_streak, newStreak);
         db.prepare('UPDATE players SET wins = wins + 1, elo = ?, current_streak = ?, best_streak = ?, current_losing_streak = 0 WHERE id = ?')
           .run(newElo, newStreak, newBest, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
-          .run(id, newElo, winnerDelta, match.id, 'singles');
+          .run(id, newElo, actualDelta, match.id, 'singles');
       });
       loserIds.forEach(id => {
         const p = db.prepare('SELECT elo, current_streak, best_streak, current_losing_streak FROM players WHERE id = ?').get(id);
-        const newElo = p.elo + loserDelta;
+        const newElo = Math.max(100, p.elo + loserDelta);
+        const actualDelta = newElo - p.elo;
         const newLoseStreak = (p.current_losing_streak ?? 0) + 1;
         db.prepare('UPDATE players SET losses = losses + 1, elo = ?, current_streak = 0, current_losing_streak = ? WHERE id = ?')
           .run(newElo, newLoseStreak, id);
         db.prepare('INSERT INTO elo_history (player_id, elo, elo_delta, match_id, rating_type) VALUES (?, ?, ?, ?, ?)')
-          .run(id, newElo, loserDelta, match.id, 'singles');
+          .run(id, newElo, actualDelta, match.id, 'singles');
       });
     }
 
@@ -571,6 +606,7 @@ app.delete('/api/matches/:id/history', (req, res) => {
     const remaining = db.prepare("SELECT * FROM matches WHERE status='completed' ORDER BY completed_at ASC").all();
 
     for (const m of remaining) {
+      if (m.winner_id === null) continue; // draws have no ELO change
       const isDoubles = !!(m.player3_id || m.player4_id);
       const eloField = isDoubles ? 'elo_doubles' : 'elo';
       const winnerIds = m.winner_id === m.player1_id
@@ -638,20 +674,39 @@ app.post('/api/matches/:id/draw', (req, res) => {
 
   const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
 
+  let seriesContinues = false;
+  let nextMatchId = null;
+
   db.exec('BEGIN');
   try {
     db.prepare(`UPDATE matches SET status = 'completed', winner_id = NULL, completed_at = datetime('now') WHERE id = ?`)
       .run(match.id);
-    if (match.table_id) {
-      db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
+
+    // If this game belongs to an active series, start the next game (draw doesn't affect series wins)
+    if (match.series_id) {
+      const series = db.prepare('SELECT * FROM series WHERE id = ?').get(match.series_id);
+      if (series && series.status === 'active') {
+        seriesContinues = true;
+        const nr = db.prepare(
+          'INSERT INTO matches (player1_id, player2_id, table_id, series_id) VALUES (?, ?, ?, ?)'
+        ).run(match.player1_id, match.player2_id, match.table_id, match.series_id);
+        nextMatchId = nr.lastInsertRowid;
+        // Table stays occupied — don't free it
+      }
     }
-    // Re-queue all players
-    const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
-    allPlayerIds.forEach((pid, i) => {
-      try {
-        db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
-      } catch (_) { /* already in queue */ }
-    });
+
+    if (!seriesContinues) {
+      if (match.table_id) {
+        db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
+      }
+      const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+      allPlayerIds.forEach((pid, i) => {
+        try {
+          db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+        } catch (_) { /* already in queue */ }
+      });
+    }
+
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
@@ -662,6 +717,13 @@ app.post('/api/matches/:id/draw', (req, res) => {
   broadcast('match:completed', completedMatch);
   broadcast('tables:updated', getTables());
   broadcast('queue:updated', getQueue());
+  if (match.series_id) broadcast('series:updated', getSeries());
+
+  if (seriesContinues && nextMatchId) {
+    const nextMatch = getMatches().find(m => m.id === nextMatchId);
+    broadcast('match:started', nextMatch);
+  }
+
   notify('Match recorded as a draw — no ELO changes', 'info');
   res.json({ ok: true });
 });
@@ -671,26 +733,26 @@ app.delete('/api/matches/:id', (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id = ? AND status = 'in_progress'").get(req.params.id);
   if (!match) return res.status(404).json({ error: 'Active match not found' });
 
+  const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
+
   db.exec('BEGIN');
   try {
     db.prepare('DELETE FROM matches WHERE id = ?').run(match.id);
     if (match.table_id) {
       db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(match.table_id);
     }
+    // Re-queue inside the transaction so it's atomic
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+    allPlayerIds.forEach((pid, i) => {
+      try {
+        db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+      } catch (_) { /* already in queue */ }
+    });
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
     return res.status(500).json({ error: 'Failed to void match' });
   }
-
-  // Re-queue all players from the voided match
-  const allPlayerIds = [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean);
-  const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
-  allPlayerIds.forEach((pid, i) => {
-    try {
-      db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
-    } catch (_) { /* already in queue */ }
-  });
 
   broadcast('tables:updated', getTables());
   broadcast('queue:updated', getQueue());
@@ -766,6 +828,13 @@ app.post('/api/series', (req, res) => {
   `).get(player1_id, player2_id, player2_id, player1_id);
   if (existing) return res.status(409).json({ error: 'An active series between these players already exists' });
 
+  const busyInSeries = db.prepare(`
+    SELECT id FROM matches WHERE status = 'in_progress'
+    AND (player1_id IN (?,?) OR player2_id IN (?,?) OR player3_id IN (?,?) OR player4_id IN (?,?))
+    LIMIT 1
+  `).get(player1_id, player2_id, player1_id, player2_id, player1_id, player2_id, player1_id, player2_id);
+  if (busyInSeries) return res.status(409).json({ error: 'One or more players are already in an active match' });
+
   // Create series and auto-start the first match in one transaction
   let seriesId, matchId;
   db.exec('BEGIN');
@@ -806,9 +875,38 @@ app.post('/api/series', (req, res) => {
 app.delete('/api/series/:id', (req, res) => {
   const series = db.prepare('SELECT * FROM series WHERE id = ?').get(req.params.id);
   if (!series) return res.status(404).json({ error: 'Series not found' });
-  db.prepare('UPDATE matches SET series_id = NULL WHERE series_id = ?').run(series.id);
-  db.prepare('DELETE FROM series WHERE id = ?').run(series.id);
+
+  // Find and void any in-progress match tied to this series
+  const activeMatch = db.prepare("SELECT * FROM matches WHERE series_id = ? AND status = 'in_progress'").get(series.id);
+
+  db.exec('BEGIN');
+  try {
+    if (activeMatch) {
+      db.prepare('DELETE FROM matches WHERE id = ?').run(activeMatch.id);
+      if (activeMatch.table_id) {
+        db.prepare("UPDATE tables_tt SET status = 'available' WHERE id = ?").run(activeMatch.table_id);
+      }
+      // Re-queue the two players
+      const pids = [activeMatch.player1_id, activeMatch.player2_id];
+      const maxPos = db.prepare('SELECT MAX(position) as mp FROM queue').get().mp ?? -1;
+      pids.forEach((pid, i) => {
+        try {
+          db.prepare('INSERT INTO queue (player_id, position) VALUES (?, ?)').run(pid, maxPos + 1 + i);
+        } catch (_) { /* already in queue */ }
+      });
+    }
+    db.prepare('UPDATE matches SET series_id = NULL WHERE series_id = ?').run(series.id);
+    db.prepare('DELETE FROM series WHERE id = ?').run(series.id);
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Failed to cancel series' });
+  }
+
   broadcast('series:updated', getSeries());
+  broadcast('tables:updated', getTables());
+  broadcast('queue:updated', getQueue());
+  notify('Series cancelled — players returned to queue', 'warning');
   res.json({ ok: true });
 });
 
@@ -1070,8 +1168,8 @@ app.post('/api/reset', (req, res) => {
   db.exec('BEGIN');
   try {
     db.exec('DELETE FROM elo_history');
-    db.exec('DELETE FROM series');
     db.exec('DELETE FROM matches');
+    db.exec('DELETE FROM series');
     db.exec('DELETE FROM queue');
     db.exec('DELETE FROM players');
     db.exec('DELETE FROM tables_tt');

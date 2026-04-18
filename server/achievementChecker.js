@@ -70,7 +70,7 @@ function checkAndAward(db, {
       if (p.current_streak >= 10) award(id, 'unstoppable');
 
       // Score-based
-      if (loserScore === 0) award(id, 'bagel');
+      if (loserScore === 0 && winnerScore > 0) award(id, 'bagel');
       if (scoreDiff === 2)  award(id, 'squeaky');
       if (scoreDiff >= 7)   award(id, 'obliterate');
 
