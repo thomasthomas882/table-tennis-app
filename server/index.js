@@ -845,6 +845,44 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// ─── Backup / Export ─────────────────────────────────────────────────────────
+
+app.get('/api/backup/db', (req, res) => {
+  const dbPath = process.env.DB_PATH || path.join(__dirname, 'tabletennis.db');
+  const os = require('os');
+  const fs = require('fs');
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const tmpPath = path.join(os.tmpdir(), `pingtrack-backup-${Date.now()}.db`);
+  try {
+    // VACUUM INTO produces a clean, WAL-consolidated, defragmented copy
+    db.exec(`VACUUM INTO '${tmpPath}'`);
+    res.download(tmpPath, `pingtrack-backup-${timestamp}.db`, () => {
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+    });
+  } catch (e) {
+    // Fallback: stream the live file directly
+    res.download(dbPath, `pingtrack-backup-${timestamp}.db`);
+  }
+});
+
+app.get('/api/backup/json', (req, res) => {
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    app: 'PingTrack',
+    data: {
+      players:     db.prepare('SELECT * FROM players ORDER BY id').all(),
+      matches:     db.prepare('SELECT * FROM matches ORDER BY id').all(),
+      eloHistory:  db.prepare('SELECT * FROM elo_history ORDER BY id').all(),
+      series:      db.prepare('SELECT * FROM series ORDER BY id').all(),
+      tables:      db.prepare('SELECT * FROM tables_tt ORDER BY id').all(),
+      achievements: db.prepare('SELECT * FROM achievements ORDER BY id').all(),
+    },
+  };
+  res.setHeader('Content-Disposition', `attachment; filename="pingtrack-backup-${timestamp}.json"`);
+  res.json(backup);
+});
+
 // ─── Achievements ────────────────────────────────────────────────────────────
 
 app.get('/api/players/:id/achievements', (req, res) => {

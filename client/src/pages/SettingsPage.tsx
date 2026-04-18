@@ -229,6 +229,7 @@ export default function SettingsPage() {
   const [resettingElo, setResettingElo] = useState(false);
   const [showAppGuide, setShowAppGuide] = useState(false);
   const [showEloGuide, setShowEloGuide] = useState(false);
+  const [backingUp, setBackingUp] = useState<'db' | 'json' | null>(null);
 
   async function handleResetElo() {
     if (!confirmResetElo) { setConfirmResetElo(true); return; }
@@ -250,6 +251,22 @@ export default function SettingsPage() {
   async function removeTable(id: number) {
     try { sounds.remove(); await api.deleteTable(id); }
     catch (e: any) { setError(e.message); }
+  }
+
+  async function downloadBackup(format: 'db' | 'json') {
+    setBackingUp(format);
+    try {
+      const res = await fetch(`/api/backup/${format}`);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pingtrack-backup-${new Date().toISOString().slice(0, 10)}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) { setError('Backup failed: ' + e.message); }
+    finally { setBackingUp(null); }
   }
 
   async function handleReset() {
@@ -433,6 +450,45 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Data & Backup */}
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">💾</span>
+              <h2 className="font-semibold text-base">Data & Backup</h2>
+            </div>
+            <p className="text-xs text-muted mb-4 leading-relaxed">
+              All club data lives in a single file on this machine. Export a backup regularly — if the file is lost or the PC dies, everything goes with it.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-theme bg-input">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Database file (.db)</p>
+                  <p className="text-xs text-muted mt-0.5">Full binary backup — restores everything exactly.</p>
+                </div>
+                <button
+                  onClick={() => downloadBackup('db')}
+                  disabled={backingUp !== null}
+                  className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0"
+                >
+                  {backingUp === 'db' ? 'Exporting…' : '⬇ Download .db'}
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-theme bg-input">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">JSON export</p>
+                  <p className="text-xs text-muted mt-0.5">Human-readable — players, matches, ELO history, achievements.</p>
+                </div>
+                <button
+                  onClick={() => downloadBackup('json')}
+                  disabled={backingUp !== null}
+                  className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0"
+                >
+                  {backingUp === 'json' ? 'Exporting…' : '⬇ Export JSON'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Danger Zone */}
