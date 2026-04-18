@@ -300,7 +300,7 @@ export default function PlayerProfilePage() {
             <div className="mt-4 pt-3 border-t border-theme flex items-center gap-3">
               {confirmReset ? (
                 <>
-                  <span className="text-xs text-red-400">Reset this player's ELO to 1000 and clear all history?</span>
+                  <span className="text-xs text-red-400">Reset ELO to 1000 and clear rating stats? Match records are kept.</span>
                   <button onClick={handleResetElo} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Confirm reset</button>
                   <button onClick={() => setConfirmReset(false)} className="text-xs text-muted hover:text-primary transition-colors">Cancel</button>
                 </>

@@ -56,10 +56,10 @@ const ELO_SECTIONS = [
     title: 'Real Examples',
     content: null,
     examples: [
-      { scenario: 'Equal players (1000 vs 1000)', result: 'Winner: +20 pts · Loser: −20 pts', highlight: false },
-      { scenario: 'Underdog wins (900 beats 1200)', result: 'Winner: +35 pts · Loser: −25 pts', highlight: true },
-      { scenario: 'Favourite wins (1200 beats 900)', result: 'Winner: +7 pts · Loser: −9 pts', highlight: false },
-      { scenario: 'Big upset (800 beats 1400)', result: 'Winner: ~+39 pts · Loser: ~−29 pts', highlight: true },
+      { scenario: 'Equal players (1000 vs 1000)', result: 'Winner: +16 pts · Loser: −16 pts', highlight: false },
+      { scenario: 'Underdog wins (1000 beats 1100)', result: 'Winner: +26 pts · Loser: −26 pts', highlight: true },
+      { scenario: 'Favourite wins (1100 beats 1000)', result: 'Winner: +6 pts · Loser: −6 pts', highlight: false },
+      { scenario: 'New player wins (1000 vs 1000, <15 games)', result: 'Winner: +20 pts · Loser: −16 pts', highlight: true },
     ],
   },
 ];
