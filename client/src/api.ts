@@ -72,6 +72,10 @@ export const api = {
   // Delete match from history (recalculates all ELO)
   deleteMatchFromHistory: (id: number) => request(`/matches/${id}/history`, { method: 'DELETE' }),
 
+  // Backup / Restore
+  restoreBackup: (data: unknown) =>
+    request('/backup/restore', { method: 'POST', body: JSON.stringify({ data }) }),
+
   // Series
   getSeries: (status?: string) => request(`/series${status ? `?status=${status}` : ''}`),
   createSeries: (player1_id: number, player2_id: number, format: number, table_id?: number) =>

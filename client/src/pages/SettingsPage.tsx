@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../App';
 import { api } from '../api';
 import { sounds } from '../utils/sounds';
@@ -230,6 +230,9 @@ export default function SettingsPage() {
   const [showAppGuide, setShowAppGuide] = useState(false);
   const [showEloGuide, setShowEloGuide] = useState(false);
   const [backingUp, setBackingUp] = useState<'db' | 'json' | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<{ file: File; exportedAt: string; data: unknown } | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleResetElo() {
     if (!confirmResetElo) { setConfirmResetElo(true); return; }
@@ -267,6 +270,37 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
     } catch (e: any) { setError('Backup failed: ' + e.message); }
     finally { setBackingUp(null); }
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setError('');
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed.data || !Array.isArray(parsed.data.players)) {
+        throw new Error('Not a valid PingTrack backup file');
+      }
+      setPendingRestore({ file, exportedAt: parsed.exportedAt ?? 'unknown', data: parsed.data });
+    } catch (e: any) {
+      setError('Could not read backup file: ' + e.message);
+    }
+  }
+
+  async function confirmRestore() {
+    if (!pendingRestore) return;
+    setRestoring(true);
+    try {
+      await api.restoreBackup(pendingRestore.data);
+      setPendingRestore(null);
+      sounds.success();
+    } catch (e: any) {
+      setError('Restore failed: ' + e.message);
+    } finally {
+      setRestoring(false);
+    }
   }
 
   async function handleReset() {
@@ -487,6 +521,55 @@ export default function SettingsPage() {
                 >
                   {backingUp === 'json' ? 'Exporting…' : '⬇ Export JSON'}
                 </button>
+              </div>
+              <div className="border-t border-theme/50 pt-2 mt-1">
+                <input
+                  type="file"
+                  accept=".json"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                {pendingRestore ? (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 animate-slide-up">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-amber-400">Replace all data?</p>
+                      <p className="text-xs text-muted mt-0.5 truncate">
+                        Backup from {new Date(pendingRestore.exportedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={confirmRestore}
+                        disabled={restoring}
+                        className="btn-danger text-xs py-1.5 px-3 whitespace-nowrap"
+                      >
+                        {restoring ? 'Restoring…' : 'Restore'}
+                      </button>
+                      <button
+                        onClick={() => { sounds.cancel(); setPendingRestore(null); }}
+                        disabled={restoring}
+                        className="btn-secondary text-xs py-1.5 px-3"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl border border-theme bg-input">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">Restore from JSON</p>
+                      <p className="text-xs text-muted mt-0.5">Import a previously exported backup file.</p>
+                    </div>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={backingUp !== null}
+                      className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap flex-shrink-0"
+                    >
+                      ⬆ Restore JSON
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

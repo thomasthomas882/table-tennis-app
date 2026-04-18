@@ -883,6 +883,104 @@ app.get('/api/backup/json', (req, res) => {
   res.json(backup);
 });
 
+app.post('/api/backup/restore', (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'No backup data provided' });
+
+  const required = ['players', 'matches', 'eloHistory', 'series', 'tables', 'achievements'];
+  for (const key of required) {
+    if (!Array.isArray(data[key])) return res.status(400).json({ error: `Invalid backup: missing "${key}"` });
+  }
+
+  db.exec('BEGIN');
+  try {
+    // Delete in reverse-dependency order
+    db.exec('DELETE FROM achievements');
+    db.exec('DELETE FROM elo_history');
+    db.exec('DELETE FROM queue');
+    db.exec('DELETE FROM matches');
+    db.exec('DELETE FROM series');
+    db.exec('DELETE FROM players');
+    db.exec('DELETE FROM tables_tt');
+
+    // Re-insert: tables (no deps)
+    const insTable = db.prepare('INSERT INTO tables_tt (id, name, status, position) VALUES (?, ?, ?, ?)');
+    for (const t of data.tables) {
+      insTable.run(t.id, t.name, t.status ?? 'available', t.position ?? null);
+    }
+
+    // Re-insert: players
+    const insPlayer = db.prepare(`INSERT INTO players
+      (id, name, elo, elo_doubles, wins, losses, doubles_wins, doubles_losses,
+       current_streak, best_streak, current_losing_streak, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const p of data.players) {
+      insPlayer.run(p.id, p.name, p.elo ?? 1000, p.elo_doubles ?? 1000,
+        p.wins ?? 0, p.losses ?? 0, p.doubles_wins ?? 0, p.doubles_losses ?? 0,
+        p.current_streak ?? 0, p.best_streak ?? 0, p.current_losing_streak ?? 0,
+        p.created_at);
+    }
+
+    // Re-insert: series
+    const insSeries = db.prepare(`INSERT INTO series
+      (id, player1_id, player2_id, format, wins1, wins2, status, winner_id, created_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const s of data.series) {
+      insSeries.run(s.id, s.player1_id, s.player2_id, s.format,
+        s.wins1 ?? 0, s.wins2 ?? 0, s.status ?? 'active',
+        s.winner_id ?? null, s.created_at, s.completed_at ?? null);
+    }
+
+    // Re-insert: matches
+    const insMatch = db.prepare(`INSERT INTO matches
+      (id, table_id, player1_id, player2_id, player3_id, player4_id,
+       player1_score, player2_score, winner_id, status, created_at, completed_at, series_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const m of data.matches) {
+      insMatch.run(m.id, m.table_id ?? null, m.player1_id, m.player2_id,
+        m.player3_id ?? null, m.player4_id ?? null,
+        m.player1_score ?? 0, m.player2_score ?? 0,
+        m.winner_id ?? null, m.status ?? 'completed',
+        m.created_at, m.completed_at ?? null, m.series_id ?? null);
+    }
+
+    // Re-insert: elo_history
+    const insElo = db.prepare(`INSERT INTO elo_history
+      (id, player_id, elo, elo_delta, match_id, created_at, rating_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`);
+    for (const e of data.eloHistory) {
+      insElo.run(e.id, e.player_id, e.elo, e.elo_delta,
+        e.match_id ?? null, e.created_at, e.rating_type ?? 'singles');
+    }
+
+    // Re-insert: achievements
+    const insAch = db.prepare('INSERT INTO achievements (id, player_id, achievement_id, earned_at) VALUES (?, ?, ?, ?)');
+    for (const a of data.achievements) {
+      insAch.run(a.id, a.player_id, a.achievement_id, a.earned_at);
+    }
+
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Restore failed: ' + e.message });
+  }
+
+  // Push full state refresh to every connected client
+  const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
+  broadcast('init', {
+    players,
+    queue: getQueue(),
+    tables: getTables(),
+    matches: getMatches('in_progress'),
+  });
+  broadcast('players:updated', players);
+  broadcast('leaderboard:updated', players);
+  broadcast('queue:updated', getQueue());
+  broadcast('tables:updated', getTables());
+  notify('Backup restored — all data has been replaced.', 'success');
+  res.json({ ok: true });
+});
+
 // ─── Achievements ────────────────────────────────────────────────────────────
 
 app.get('/api/players/:id/achievements', (req, res) => {
