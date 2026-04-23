@@ -305,8 +305,8 @@ export default function PlayerProfilePage() {
                   <button onClick={() => setConfirmReset(false)} className="text-xs text-muted hover:text-primary transition-colors">Cancel</button>
                 </>
               ) : (
-                <button onClick={handleResetElo} className="text-xs text-muted hover:text-red-400 transition-colors">
-                  Reset ELO history
+                <button onClick={handleResetElo} className="flex items-center gap-1.5 text-xs text-muted hover:text-red-400 border border-theme hover:border-red-500/40 rounded-lg px-2.5 py-1.5 transition-all">
+                  ↺ Reset ELO
                 </button>
               )}
             </div>

@@ -367,9 +367,16 @@ export default function QueuePage() {
     },
   });
 
+  // ── Escape key to cancel tap-to-assign selection ──────────────
+  useEffect(() => {
+    if (!selectedQueuePlayer) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedQueuePlayer(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedQueuePlayer]);
+
   // ── Touch tap-to-assign handler ────────────────────────────────
   function handleTapQueueItem(playerId: number, playerName: string) {
-    if (!isTouchDevice.current) return;
     if (selectedQueuePlayer?.id === playerId) {
       setSelectedQueuePlayer(null);
     } else {
@@ -417,6 +424,36 @@ export default function QueuePage() {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('type', 'player');
     e.dataTransfer.setData('playerId', String(playerId));
+
+    // Custom drag ghost — styled player card instead of browser default screenshot
+    const player = players.find(p => p.id === playerId);
+    if (player) {
+      const ghost = document.createElement('div');
+      ghost.style.cssText = [
+        'position:fixed', 'top:-9999px', 'left:-9999px',
+        'background:linear-gradient(135deg,#0f2035 0%,#162032 100%)',
+        'border:1.5px solid rgba(74,222,128,0.55)',
+        'border-radius:12px', 'padding:8px 14px 8px 10px',
+        'display:inline-flex', 'align-items:center', 'gap:10px',
+        'color:#e2e8f0',
+        'font-family:system-ui,-apple-system,sans-serif',
+        'font-size:14px', 'font-weight:600', 'line-height:1',
+        'box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px rgba(74,222,128,0.1)',
+        'white-space:nowrap', 'pointer-events:none',
+      ].join(';');
+      const eloHtml = !hideElo
+        ? `<span style="color:#4ade80;font-size:11px;font-weight:700;opacity:0.85">${player.elo}</span>`
+        : '';
+      ghost.innerHTML = `
+        <span style="width:30px;height:30px;border-radius:50%;background:rgba(74,222,128,0.15);border:1.5px solid rgba(74,222,128,0.35);display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#4ade80;flex-shrink:0">${player.name[0].toUpperCase()}</span>
+        <span>${player.name.split(' ')[0]}</span>
+        ${eloHtml}
+        <span style="font-size:16px;margin-left:2px">🏓</span>
+      `;
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+      requestAnimationFrame(() => ghost.remove());
+    }
   }
 
   function handleQueueItemDragOver(e: React.DragEvent, targetId: number) {
@@ -481,6 +518,7 @@ export default function QueuePage() {
     }));
     setDragOverTableSide(null);
     setDraggedPlayerId(null);
+    setSelectedQueuePlayer(null);
   }
 
   function removeFromTable(tableId: number, pid: number, side: 'A' | 'B') {
@@ -566,9 +604,7 @@ export default function QueuePage() {
       <div>
         <h1 className="text-2xl font-bold">Match Queue & Tables</h1>
         <p className="text-secondary text-sm mt-1">
-          {isTouchDevice.current
-            ? 'Tap a player to select, then tap a table side to assign.'
-            : 'Drag players onto table sides to assign them, then press Start Match. Drag ⠿ to reorder.'}
+          Drag a player onto a table side — or tap a player to select, then tap a side. Drag ⠿ to reorder tables.
         </p>
       </div>
 
