@@ -280,7 +280,7 @@ function Stopwatch({ startedAt }: { startedAt: string }) {
   const warn = elapsed > 1800; // > 30 min
 
   return (
-    <span className={`font-mono tabular-nums text-xs font-semibold ${warn ? 'text-red-400' : 'text-orange-400'}`}>
+    <span className={`font-mono tabular-nums text-sm font-semibold ${warn ? 'text-red-400' : 'text-orange-400'}`}>
       ⏱ {h > 0 ? `${h}:` : ''}{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
     </span>
   );

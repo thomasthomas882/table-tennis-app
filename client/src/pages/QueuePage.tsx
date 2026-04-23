@@ -1,4 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
+
+function Stopwatch({ startedAt }: { startedAt: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const start = new Date(startedAt.includes('T') ? startedAt + (startedAt.endsWith('Z') ? '' : 'Z') : startedAt.replace(' ', 'T') + 'Z').getTime();
+    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  const warn = elapsed > 1800;
+  return (
+    <span className={`font-mono tabular-nums text-xs font-semibold ${warn ? 'text-red-400' : 'text-white/70'}`}>
+      {h > 0 ? `${h}:` : ''}{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
+    </span>
+  );
+}
 import { useApp } from '../App';
 import { api } from '../api';
 import { Player, Table } from '../types';
@@ -98,6 +118,7 @@ interface TableCardProps {
   // Touch tap-to-assign
   selectedQueuePlayer: { id: number; name: string } | null;
   onTapSide: (tableId: number, side: 'A' | 'B') => void;
+  matchStartedAt?: string;
 }
 
 function TableCard({
@@ -107,6 +128,7 @@ function TableCard({
   onCardDragStart, onCardDragOver, onCardDrop,
   allPlayers, starting,
   selectedQueuePlayer, onTapSide,
+  matchStartedAt,
 }: TableCardProps) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
@@ -235,8 +257,9 @@ function TableCard({
         </div>
 
         {isOccupied && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/20 pointer-events-none">
             <span className="text-white/60 text-xs font-semibold">Match in progress</span>
+            {matchStartedAt && <Stopwatch startedAt={matchStartedAt} />}
           </div>
         )}
       </div>
@@ -736,6 +759,7 @@ export default function QueuePage() {
                 const dragOverSide = dragOverTableSide?.id === table.id ? dragOverTableSide.side : null;
                 const isDragOver = dragOverTableReorderId === table.id;
                 const isDragging = draggedTableId === table.id;
+                const activeMatch = activeMatches.find(m => m.table_id === table.id);
 
                 return (
                   <TableCard
@@ -758,6 +782,7 @@ export default function QueuePage() {
                     starting={starting === table.id}
                     selectedQueuePlayer={selectedQueuePlayer}
                     onTapSide={handleTapSide}
+                    matchStartedAt={activeMatch?.created_at}
                   />
                 );
               })}

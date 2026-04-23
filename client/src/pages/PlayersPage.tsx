@@ -7,8 +7,8 @@ import { sounds } from '../utils/sounds';
 type SortKey = 'elo_desc' | 'elo_asc' | 'name' | 'joined';
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'elo_desc', label: 'Highest rated' },
-  { key: 'elo_asc', label: 'Lowest rated' },
+  { key: 'elo_desc', label: 'Highest' },
+  { key: 'elo_asc', label: 'Lowest' },
   { key: 'name',    label: 'A – Z' },
   { key: 'joined',  label: 'Newest' },
 ];
