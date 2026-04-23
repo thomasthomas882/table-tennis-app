@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface UseTouchSortOptions {
   containerRef: React.RefObject<HTMLElement | null>;
@@ -14,6 +14,11 @@ export function useTouchSort({ containerRef, onReorder }: UseTouchSortOptions) {
   const ghostEl = useRef<HTMLDivElement | null>(null);
   const hoverIdx = useRef<number | null>(null);
   const insertIndicator = useRef<HTMLDivElement | null>(null);
+  // Track active document listeners so we can clean up on touchcancel or unmount
+  const activeHandlers = useRef<{
+    move: (e: TouchEvent) => void;
+    end: () => void;
+  } | null>(null);
 
   function getListItems(): HTMLElement[] {
     if (!containerRef.current) return [];
@@ -33,6 +38,20 @@ export function useTouchSort({ containerRef, onReorder }: UseTouchSortOptions) {
       insertIndicator.current = null;
     }
   }
+
+  function removeActiveListeners() {
+    if (activeHandlers.current) {
+      document.removeEventListener('touchmove', activeHandlers.current.move);
+      document.removeEventListener('touchend', activeHandlers.current.end);
+      document.removeEventListener('touchcancel', activeHandlers.current.end);
+      activeHandlers.current = null;
+    }
+  }
+
+  // Clean up ghost elements and document listeners if the component unmounts
+  // mid-drag (e.g., user navigates away while dragging).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => { removeGhost(); removeIndicator(); removeActiveListeners(); }, []);
 
   function createGhost(sourceEl: HTMLElement, touch: { clientX: number; clientY: number }) {
     const rect = sourceEl.getBoundingClientRect();
@@ -63,12 +82,6 @@ export function useTouchSort({ containerRef, onReorder }: UseTouchSortOptions) {
     document.body.appendChild(ghost);
     ghostEl.current = ghost;
     return ghost;
-  }
-
-  function moveGhost(touch: { clientX: number; clientY: number }, ghost: HTMLDivElement) {
-    const rect = ghost.getBoundingClientRect();
-    ghost.style.left = `${touch.clientX - rect.width / 2}px`;
-    ghost.style.top  = `${touch.clientY - rect.height / 2}px`;
   }
 
   function showInsertIndicator(beforeEl: HTMLElement | null) {
@@ -155,6 +168,7 @@ export function useTouchSort({ containerRef, onReorder }: UseTouchSortOptions) {
         const handleTouchEnd = () => {
           removeGhost();
           removeIndicator();
+          removeActiveListeners();
 
           if (draggingIdx.current !== null && hoverIdx.current !== null &&
               draggingIdx.current !== hoverIdx.current) {
@@ -163,13 +177,15 @@ export function useTouchSort({ containerRef, onReorder }: UseTouchSortOptions) {
 
           draggingIdx.current = null;
           hoverIdx.current = null;
-
-          document.removeEventListener('touchmove', handleTouchMove);
-          document.removeEventListener('touchend', handleTouchEnd);
         };
+
+        // Discard any leftover listeners from a previously interrupted touch
+        removeActiveListeners();
 
         document.addEventListener('touchmove', handleTouchMove, { passive: false });
         document.addEventListener('touchend', handleTouchEnd);
+        document.addEventListener('touchcancel', handleTouchEnd); // handles OS interruptions
+        activeHandlers.current = { move: handleTouchMove, end: handleTouchEnd };
       },
     };
   }

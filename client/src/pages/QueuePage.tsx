@@ -321,6 +321,28 @@ export default function QueuePage() {
     return () => clearInterval(id);
   }, []);
 
+  // ── Safety net: reset stuck drag state ────────────────────────
+  // If the user drags outside the Electron window and releases there,
+  // dragend never fires in the browser and all subsequent mouse clicks
+  // are silently consumed by the drag system. Listening for window blur
+  // (drag left the window) and document dragend (belt-and-suspenders)
+  // ensures we always exit drag mode.
+  useEffect(() => {
+    function resetDrag() {
+      setDraggedPlayerId(null);
+      setDraggedTableId(null);
+      setDragOverQueueId(null);
+      setDragOverTableSide(null);
+      setDragOverTableReorderId(null);
+    }
+    window.addEventListener('blur', resetDrag);
+    document.addEventListener('dragend', resetDrag);
+    return () => {
+      window.removeEventListener('blur', resetDrag);
+      document.removeEventListener('dragend', resetDrag);
+    };
+  }, []);
+
   // ── Derived ────────────────────────────────────────────────────
   const queuedIds = new Set(queue.map(q => q.player_id));
   const activeIds = new Set([

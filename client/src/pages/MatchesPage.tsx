@@ -731,17 +731,24 @@ export default function MatchesPage() {
       .finally(() => setLoadingHistory(false));
   }
 
-  // Initial load + refresh only when a match actually completes/voids
-  useEffect(() => {
+  function fetchAll() {
     fetchCompleted();
     api.getSeries().then(s => setSeries(s as Series[])).catch(() => {});
+  }
+
+  // Initial load + refresh on reconnect and match events
+  useEffect(() => {
+    fetchAll();
     const onSeriesUpdated = (s: Series[]) => setSeries(s);
+    socket.on('connect', fetchAll);
     socket.on('match:completed', fetchCompleted);
     socket.on('series:updated', onSeriesUpdated);
     return () => {
+      socket.off('connect', fetchAll);
       socket.off('match:completed', fetchCompleted);
       socket.off('series:updated', onSeriesUpdated);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleCreateSeries(p1: number, p2: number, format: number, tableId: number) {

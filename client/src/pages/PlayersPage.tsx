@@ -57,7 +57,7 @@ export default function PlayersPage() {
           <input
             type="text"
             value={newName}
-            onChange={e => setNewName(e.target.value)}
+            onChange={e => { setNewName(e.target.value); if (error) setError(''); }}
             placeholder="Player name…"
             className="input flex-1"
             maxLength={40}
