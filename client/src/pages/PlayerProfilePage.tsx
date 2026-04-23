@@ -296,20 +296,6 @@ export default function PlayerProfilePage() {
                 </div>
               </div>
             </div>
-            {/* Reset ELO button */}
-            <div className="mt-4 pt-3 border-t border-theme flex items-center gap-3">
-              {confirmReset ? (
-                <>
-                  <span className="text-xs text-red-400">Reset ELO to 1000 and clear rating stats? Match records are kept.</span>
-                  <button onClick={handleResetElo} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Confirm reset</button>
-                  <button onClick={() => setConfirmReset(false)} className="text-xs text-muted hover:text-primary transition-colors">Cancel</button>
-                </>
-              ) : (
-                <button onClick={handleResetElo} className="flex items-center gap-1.5 text-xs text-muted hover:text-red-400 border border-theme hover:border-red-500/40 rounded-lg px-2.5 py-1.5 transition-all">
-                  ↺ Reset ELO
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -441,6 +427,42 @@ export default function PlayerProfilePage() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Reset ELO */}
+      <div className="card border-red-500/20 bg-red-500/5">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-sm text-red-400">Reset ELO &amp; Stats</h3>
+            <p className="text-muted text-xs mt-0.5">
+              Resets {player.name.split(' ')[0]}'s rating to 1000 and clears all stats. Match records are kept.
+            </p>
+          </div>
+          {confirmReset ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-red-400 font-medium">This cannot be undone — confirm?</span>
+              <button
+                onClick={handleResetElo}
+                className="text-xs px-3 py-1.5 bg-red-500/25 hover:bg-red-500/40 border border-red-500/50 text-red-300 rounded-lg transition-all font-semibold"
+              >
+                Yes, reset
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="text-xs px-3 py-1.5 border border-theme text-muted hover:text-primary rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleResetElo}
+              className="flex items-center gap-2 text-sm font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-lg px-4 py-2 transition-all flex-shrink-0"
+            >
+              ↺ Reset ELO
+            </button>
+          )}
         </div>
       </div>
     </div>
