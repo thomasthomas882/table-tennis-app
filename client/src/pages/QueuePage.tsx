@@ -579,7 +579,7 @@ export default function QueuePage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[2fr_3fr] gap-6">
+      <div className="grid lg:grid-cols-[1fr_2fr] gap-6">
 
         {/* ── Left: Queue ──────────────────────────────────────── */}
         <div className="space-y-4">

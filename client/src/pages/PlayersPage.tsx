@@ -4,10 +4,22 @@ import { useApp } from '../App';
 import { api } from '../api';
 import { sounds } from '../utils/sounds';
 
+type SortKey = 'elo_desc' | 'elo_asc' | 'name' | 'joined';
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'elo_desc', label: 'Highest rated' },
+  { key: 'elo_asc', label: 'Lowest rated' },
+  { key: 'name',    label: 'A – Z' },
+  { key: 'joined',  label: 'Newest' },
+];
+
 export default function PlayersPage() {
-  const { players, queue, activeMatches, hideElo } = useApp();
+  const { players, queue, activeMatches, hideElo, refreshStats } = useApp();
   const navigate = useNavigate();
+  const [tab, setTab] = useState<'add' | 'find'>('add');
   const [newName, setNewName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('elo_desc');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,6 +37,7 @@ export default function PlayersPage() {
       await api.createPlayer(newName.trim());
       sounds.success();
       setNewName('');
+      refreshStats();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -36,37 +49,113 @@ export default function PlayersPage() {
     if (!confirm(`Remove ${name} from the club? This cannot be undone.`)) return;
     sounds.remove();
     await api.deletePlayer(id).catch((e) => setError(e.message));
+    refreshStats();
   }
 
   function getStatus(id: number) {
-    if (activeIds.has(id)) return { label: 'Playing', dot: 'bg-orange-400', color: 'bg-orange-500/15 text-orange-400 border-orange-500/30' };
-    if (queuedIds.has(id)) return { label: 'In Queue', dot: 'bg-yellow-400', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' };
-    return { label: 'Available', dot: 'bg-green-400', color: 'bg-green-500/15 text-green-400 border-green-500/30' };
+    if (activeIds.has(id)) return { label: 'Playing',   dot: 'bg-orange-400', color: 'bg-orange-500/15 text-orange-400 border-orange-500/30' };
+    if (queuedIds.has(id)) return { label: 'In Queue',  dot: 'bg-yellow-400', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' };
+    return                        { label: 'Available', dot: 'bg-green-400',  color: 'bg-green-500/15 text-green-400 border-green-500/30' };
   }
 
-  const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
+  // Precompute global ELO rank (rank badge shows position across ALL players, not just filtered)
+  const globalEloRank = new Map(
+    [...players].sort((a, b) => b.elo - a.elo).map((p, i) => [p.id, i])
+  );
+
+  const displayPlayers = players
+    .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'elo_desc': return b.elo - a.elo;
+        case 'elo_asc':  return a.elo - b.elo;
+        case 'name':     return a.name.localeCompare(b.name);
+        case 'joined':   return b.id - a.id;
+        default:         return 0;
+      }
+    });
 
   return (
     <div className="space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold">Players</h1>
 
-      {/* Add player form */}
-      <div className="card">
-        <h2 className="font-semibold mb-3">Add New Player</h2>
-        <form onSubmit={addPlayer} className="flex gap-2">
-          <input
-            type="text"
-            value={newName}
-            onChange={e => { setNewName(e.target.value); if (error) setError(''); }}
-            placeholder="Player name…"
-            className="input flex-1"
-            maxLength={40}
-          />
-          <button type="submit" disabled={loading || !newName.trim()} className="btn-primary whitespace-nowrap">
-            {loading ? 'Adding…' : '+ Add'}
+      {/* Tab card */}
+      <div className="card !p-0 overflow-hidden">
+        <div className="flex border-b border-theme">
+          <button
+            onClick={() => { setTab('add'); setSearchQuery(''); setError(''); }}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              tab === 'add'
+                ? 'bg-green-500/10 text-green-400 border-b-2 border-green-500'
+                : 'text-muted hover:text-primary'
+            }`}
+          >
+            + Add Player
           </button>
-        </form>
-        {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+          <button
+            onClick={() => { setTab('find'); setError(''); }}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              tab === 'find'
+                ? 'bg-blue-500/10 text-blue-400 border-b-2 border-blue-500'
+                : 'text-muted hover:text-primary'
+            }`}
+          >
+            🔍 Find Player
+          </button>
+        </div>
+
+        <div className="p-4">
+          {tab === 'add' ? (
+            <form onSubmit={addPlayer} className="flex gap-2">
+              <input
+                type="text"
+                value={newName}
+                onChange={e => { setNewName(e.target.value); if (error) setError(''); }}
+                placeholder="Player name…"
+                className="input flex-1"
+                maxLength={40}
+              />
+              <button type="submit" disabled={loading || !newName.trim()} className="btn-primary whitespace-nowrap">
+                {loading ? 'Adding…' : '+ Add'}
+              </button>
+            </form>
+          ) : (
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={`Search among ${players.length} player${players.length !== 1 ? 's' : ''}…`}
+              className="input w-full"
+              autoFocus
+            />
+          )}
+          {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+        </div>
+      </div>
+
+      {/* Sort + count bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-secondary">
+          {searchQuery
+            ? `${displayPlayers.length} result${displayPlayers.length !== 1 ? 's' : ''} for "${searchQuery}"`
+            : `${players.length} player${players.length !== 1 ? 's' : ''}`}
+        </p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-muted">Sort:</span>
+          {SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setSortBy(opt.key)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                sortBy === opt.key
+                  ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                  : 'bg-card border-theme text-muted hover:text-primary hover:border-hover'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Player grid */}
@@ -76,13 +165,20 @@ export default function PlayersPage() {
           <p className="text-secondary">No players yet.</p>
           <p className="text-muted text-sm mt-1">Add the first player above to get started!</p>
         </div>
+      ) : displayPlayers.length === 0 ? (
+        <div className="card text-center py-10 animate-pop-in">
+          <p className="text-4xl mb-2">🔍</p>
+          <p className="text-secondary">No players match "{searchQuery}"</p>
+          <p className="text-muted text-sm mt-1">Try a different name.</p>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger">
-          {sortedPlayers.map((p, i) => {
+          {displayPlayers.map((p, i) => {
             const status = getStatus(p.id);
             const totalGames = p.wins + p.losses;
             const winRate = totalGames > 0 ? Math.round((p.wins / totalGames) * 100) : null;
-            const rank = i < 3 ? ['🥇','🥈','🥉'][i] : null;
+            const rankIdx = globalEloRank.get(p.id) ?? 99;
+            const rankEmoji = totalGames > 0 && rankIdx < 3 ? ['🥇','🥈','🥉'][rankIdx] : null;
 
             return (
               <div key={p.id}
@@ -93,18 +189,15 @@ export default function PlayersPage() {
                   onClick={(e) => { e.stopPropagation(); removePlayer(p.id, p.name); }}
                   className="absolute top-3 right-3 text-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-150 text-xl leading-none"
                   title="Remove player"
-                >
-                  ×
-                </button>
+                >×</button>
 
-                {/* Avatar + rank */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="relative">
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-green-400 font-bold text-xl border border-green-500/20">
                       {p.name[0].toUpperCase()}
                     </div>
-                    {rank && (
-                      <span className="absolute -top-1.5 -right-1.5 text-sm">{rank}</span>
+                    {rankEmoji && (
+                      <span className="absolute -top-1.5 -right-1.5 text-sm">{rankEmoji}</span>
                     )}
                   </div>
                   <span className={`badge border ${status.color} flex items-center gap-1`}>
