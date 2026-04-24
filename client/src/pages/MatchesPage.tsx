@@ -756,7 +756,8 @@ export default function MatchesPage() {
   }
 
   async function handleCancelSeries(id: number) {
-    await api.cancelSeries(id);
+    try { await api.cancelSeries(id); }
+    catch (e) { console.error('Failed to cancel series:', e); }
   }
 
   const activeSeries = series.filter(s => s.status === 'active');

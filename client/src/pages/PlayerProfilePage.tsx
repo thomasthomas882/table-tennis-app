@@ -170,6 +170,8 @@ export default function PlayerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -193,10 +195,18 @@ export default function PlayerProfilePage() {
   async function handleResetElo() {
     if (!confirmReset) { setConfirmReset(true); return; }
     setConfirmReset(false);
-    await api.resetPlayerElo(Number(id));
-    const [s, a] = await Promise.all([api.getPlayerStats(Number(id)), api.getPlayerAchievements(Number(id))]);
-    setStats(s as PlayerStats);
-    setAchievements(a as Achievement[]);
+    setResetting(true);
+    setResetError('');
+    try {
+      await api.resetPlayerElo(Number(id));
+      const [s, a] = await Promise.all([api.getPlayerStats(Number(id)), api.getPlayerAchievements(Number(id))]);
+      setStats(s as PlayerStats);
+      setAchievements(a as Achievement[]);
+    } catch (e: any) {
+      setResetError(e.message || 'Reset failed');
+    } finally {
+      setResetting(false);
+    }
   }
 
   async function handleDeleteConfirm() {
@@ -432,6 +442,7 @@ export default function PlayerProfilePage() {
 
       {/* Reset ELO */}
       <div className="card border-red-500/20 bg-red-500/5">
+        {resetError && <p className="text-red-400 text-sm mb-3">{resetError}</p>}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h3 className="font-semibold text-sm text-red-400">Reset ELO &amp; Stats</h3>
@@ -444,9 +455,10 @@ export default function PlayerProfilePage() {
               <span className="text-xs text-red-400 font-medium">This cannot be undone — confirm?</span>
               <button
                 onClick={handleResetElo}
-                className="text-xs px-3 py-1.5 bg-red-500/25 hover:bg-red-500/40 border border-red-500/50 text-red-300 rounded-lg transition-all font-semibold"
+                disabled={resetting}
+                className="text-xs px-3 py-1.5 bg-red-500/25 hover:bg-red-500/40 border border-red-500/50 text-red-300 rounded-lg transition-all font-semibold disabled:opacity-50"
               >
-                Yes, reset
+                {resetting ? 'Resetting…' : 'Yes, reset'}
               </button>
               <button
                 onClick={() => setConfirmReset(false)}

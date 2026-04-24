@@ -700,7 +700,7 @@ export default function QueuePage() {
                         </p>
                       </div>
                       <button
-                        onClick={() => leaveQueue(entry.player_id)}
+                        onClick={(e) => { e.stopPropagation(); leaveQueue(entry.player_id); }}
                         className="text-faint hover:text-red-400 transition-colors text-xl leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10 flex-shrink-0"
                         title="Remove from queue"
                       >×</button>

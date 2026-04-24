@@ -686,6 +686,7 @@ app.delete('/api/matches/:id/history', (req, res) => {
   const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
   broadcast('players:updated', players);
   broadcast('leaderboard:updated', players);
+  broadcast('match:completed', null);
   notify('Match deleted — ratings recalculated', 'warning');
   res.json({ ok: true });
 });
