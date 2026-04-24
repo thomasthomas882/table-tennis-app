@@ -45,6 +45,26 @@ app.post('/api/players', (req, res) => {
   }
 });
 
+app.patch('/api/players/:id', (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const player = db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  const trimmed = name.trim();
+  try {
+    db.prepare('UPDATE players SET name = ? WHERE id = ?').run(trimmed, req.params.id);
+  } catch (e) {
+    if (e.message.includes('UNIQUE')) return res.status(409).json({ error: 'A player with that name already exists' });
+    return res.status(500).json({ error: 'Server error' });
+  }
+  const players = db.prepare('SELECT * FROM players ORDER BY elo DESC').all();
+  broadcast('players:updated', players);
+  broadcast('leaderboard:updated', players);
+  broadcast('queue:updated', getQueue());
+  notify(`${player.name} renamed to ${trimmed}`, 'info');
+  res.json(db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id));
+});
+
 app.delete('/api/players/:id', (req, res) => {
   const player = db.prepare('SELECT * FROM players WHERE id = ?').get(req.params.id);
   if (!player) return res.status(404).json({ error: 'Player not found' });

@@ -17,6 +17,7 @@ export const api = {
   getPlayers: () => request('/players'),
   createPlayer: (name: string) => request('/players', { method: 'POST', body: JSON.stringify({ name }) }),
   deletePlayer: (id: number) => request(`/players/${id}`, { method: 'DELETE' }),
+  renamePlayer: (id: number, name: string) => request(`/players/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
 
   // Queue
   getQueue: () => request('/queue'),

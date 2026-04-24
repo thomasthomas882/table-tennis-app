@@ -169,6 +169,10 @@ export default function PlayerProfilePage() {
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -206,6 +210,31 @@ export default function PlayerProfilePage() {
       setResetError(e.message || 'Reset failed');
     } finally {
       setResetting(false);
+    }
+  }
+
+  function startEditing() {
+    setNameInput(stats?.player.name ?? '');
+    setNameError('');
+    setEditingName(true);
+  }
+
+  async function handleRename() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) { setNameError('Name cannot be empty'); return; }
+    if (trimmed === stats?.player.name) { setEditingName(false); return; }
+    setSavingName(true);
+    setNameError('');
+    try {
+      await api.renamePlayer(Number(id), trimmed);
+      const [s, a] = await Promise.all([api.getPlayerStats(Number(id)), api.getPlayerAchievements(Number(id))]);
+      setStats(s as PlayerStats);
+      setAchievements(a as Achievement[]);
+      setEditingName(false);
+    } catch (e: any) {
+      setNameError(e.message || 'Failed to rename');
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -264,7 +293,42 @@ export default function PlayerProfilePage() {
             {player.name[0].toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold truncate">{player.name}</h1>
+            {editingName ? (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={nameInput}
+                    onChange={e => { setNameInput(e.target.value); setNameError(''); }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setEditingName(false); }}
+                    className="input text-xl font-bold py-1 px-2 w-full max-w-xs"
+                    maxLength={40}
+                    disabled={savingName}
+                  />
+                  <button
+                    onClick={handleRename}
+                    disabled={savingName || !nameInput.trim()}
+                    className="text-xs px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 rounded-lg transition-all font-medium disabled:opacity-50 whitespace-nowrap"
+                  >{savingName ? 'Saving…' : 'Save'}</button>
+                  <button
+                    onClick={() => setEditingName(false)}
+                    disabled={savingName}
+                    className="text-xs px-3 py-1.5 border border-theme text-muted hover:text-primary rounded-lg transition-all"
+                  >Cancel</button>
+                </div>
+                {nameError && <p className="text-red-400 text-xs">{nameError}</p>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group/name">
+                <h1 className="text-2xl font-bold truncate">{player.name}</h1>
+                <button
+                  onClick={startEditing}
+                  className="text-faint hover:text-primary opacity-0 group-hover/name:opacity-100 transition-all text-base leading-none"
+                  title="Rename player"
+                >✎</button>
+              </div>
+            )}
             <p className="text-muted text-sm mt-0.5">Member since {parseUTC(player.created_at).toLocaleDateString([], { month: 'long', year: 'numeric' })}</p>
             <div className="flex flex-wrap gap-5 mt-3">
               {/* Singles stats */}
