@@ -7,3 +7,4 @@ dist/
 *.db-wal
 *.sqlite
 .DS_Store
+dist-app/

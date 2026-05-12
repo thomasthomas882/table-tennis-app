@@ -43,6 +43,14 @@ const ACHIEVEMENTS = [
   { id: 'night_owl',        name: 'Night Owl',          icon: '🦉', description: 'Win a match after 9pm. The late-night grind.' },
   { id: 'dedicated',        name: 'Dedicated',          icon: '🌅', description: 'Win a match before 8am. Absolute dedication.' },
 
+  // ── New Additions ───────────────────────────────────────────────────────────
+  { id: 'deuce_master',     name: 'Deuce Master',       icon: '⚔️', description: 'Win a match that went to deuce (12+ points)' },
+  { id: 'sweep',            name: 'Sweep',              icon: '🧹', description: 'Win a Best of 3 or Best of 5 series without dropping a single game' },
+  { id: 'iron_man',         name: 'Iron Man',           icon: '🤖', description: 'Play 10 matches in a single day' },
+  { id: 'giant_slayer',     name: 'Giant Slayer',       icon: '🪓', description: 'Beat 3 different opponents who had a higher ELO rating than you' },
+  { id: 'warming_up',       name: 'Warming Up',         icon: '🥶', description: "Lose a match where your score was less than half of your opponent's" },
+  { id: 'flawless_day',     name: 'Flawless Day',       icon: '☀️', description: 'Play at least 3 matches in a single day and win all of them' },
+
   // ── Ephemeral (computed on request, not stored in DB) ───────────────────────
   { id: 'ghost',            name: 'Ghost',              icon: '👻', description: "Hasn't been seen at the club in over a week", ephemeral: true },
   { id: 'hermit',           name: 'Hermit',             icon: '🏠', description: "Has completely vanished from the club for over a month", ephemeral: true },

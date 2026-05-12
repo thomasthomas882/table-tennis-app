@@ -222,7 +222,15 @@ function ToggleRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { theme, setTheme, tables, soundEnabled, setSoundEnabled, hideElo, setHideElo, skipMatchConfirm, setSkipMatchConfirm } = useApp();
+  const { 
+    theme, setTheme, tables,
+    soundEnabled, setSoundEnabled, 
+    hideElo, setHideElo,
+    skipMatchConfirm, setSkipMatchConfirm,
+    matchTimeLimitSingles, setMatchTimeLimitSingles,
+    matchTimeLimitDoubles, setMatchTimeLimitDoubles,
+    voiceGender, setVoiceGender
+  } = useApp();
   const [newTable, setNewTable] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -395,6 +403,28 @@ export default function SettingsPage() {
                 value={skipMatchConfirm}
                 onChange={() => { sounds.tick(); setSkipMatchConfirm(!skipMatchConfirm); }}
               />
+              <div className="border-t border-theme/50" />
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold text-sm">Match Timer Limits</span>
+                <div className="flex gap-4">
+                  <label className="flex flex-col flex-1 gap-1 text-sm">
+                    1v1 (minutes)
+                    <input type="number" className="input py-1 px-2" value={matchTimeLimitSingles} onChange={e => setMatchTimeLimitSingles(Number(e.target.value) || 15)} />
+                  </label>
+                  <label className="flex flex-col flex-1 gap-1 text-sm">
+                    2v2 (minutes)
+                    <input type="number" className="input py-1 px-2" value={matchTimeLimitDoubles} onChange={e => setMatchTimeLimitDoubles(Number(e.target.value) || 20)} />
+                  </label>
+                </div>
+              </div>
+              <div className="border-t border-theme/50" />
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-semibold">Voice Alert Gender</span>
+                <select className="input py-1 px-2 text-sm" value={voiceGender} onChange={e => { sounds.tick(); setVoiceGender(e.target.value as 'male' | 'female'); }}>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
             </div>
           </div>
 

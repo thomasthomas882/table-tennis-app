@@ -5,7 +5,7 @@ import { Player, QueueEntry, Table, Match, Notification, Stats } from './types';
 import { api } from './api';
 import Navbar from './components/Navbar';
 import NotificationToast from './components/NotificationToast';
-import { setSoundEnabled } from './utils/sounds';
+import { setSoundEnabled, sounds } from './utils/sounds';
 import Dashboard from './pages/Dashboard';
 import QueuePage from './pages/QueuePage';
 import MatchesPage from './pages/MatchesPage';
@@ -35,6 +35,12 @@ interface AppCtx {
   setHideElo: (v: boolean) => void;
   skipMatchConfirm: boolean;
   setSkipMatchConfirm: (v: boolean) => void;
+  matchTimeLimitSingles: number;
+  setMatchTimeLimitSingles: (v: number) => void;
+  matchTimeLimitDoubles: number;
+  setMatchTimeLimitDoubles: (v: number) => void;
+  voiceGender: 'male' | 'female';
+  setVoiceGender: (v: 'male' | 'female') => void;
 }
 
 const AppContext = createContext<AppCtx>({
@@ -44,6 +50,9 @@ const AppContext = createContext<AppCtx>({
   soundEnabled: true, setSoundEnabled: () => {},
   hideElo: false, setHideElo: () => {},
   skipMatchConfirm: false, setSkipMatchConfirm: () => {},
+  matchTimeLimitSingles: 15, setMatchTimeLimitSingles: () => {},
+  matchTimeLimitDoubles: 20, setMatchTimeLimitDoubles: () => {},
+  voiceGender: 'female', setVoiceGender: () => {},
 });
 
 export function useApp() {
@@ -72,6 +81,15 @@ export default function App() {
   const [hideElo, setHideEloState] = useState<boolean>(() => {
     return localStorage.getItem('pingtrack-hide-elo') === 'true';
   });
+  const [matchTimeLimitSinglesState, setMatchTimeLimitSinglesState] = useState<number>(() => {
+    return parseInt(localStorage.getItem('pingtrack-match-time') || '15', 10);
+  });
+  const [matchTimeLimitDoublesState, setMatchTimeLimitDoublesState] = useState<number>(() => {
+    return parseInt(localStorage.getItem('pingtrack-match-time-doubles') || '20', 10);
+  });
+  const [voiceGenderState, setVoiceGenderState] = useState<'male' | 'female'>(() => {
+    return (localStorage.getItem('pingtrack-voice-gender') as 'male' | 'female') || 'female';
+  });
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -94,6 +112,21 @@ export default function App() {
     localStorage.setItem('pingtrack-skip-match-confirm', String(v));
   };
 
+  const handleSetMatchTimeLimitSingles = (v: number) => {
+    setMatchTimeLimitSinglesState(v);
+    localStorage.setItem('pingtrack-match-time', String(v));
+  };
+
+  const handleSetMatchTimeLimitDoubles = (v: number) => {
+    setMatchTimeLimitDoublesState(v);
+    localStorage.setItem('pingtrack-match-time-doubles', String(v));
+  };
+
+  const handleSetVoiceGender = (v: 'male' | 'female') => {
+    setVoiceGenderState(v);
+    localStorage.setItem('pingtrack-voice-gender', v);
+  };
+
   // Sync sound module with persisted preference on mount
   useEffect(() => { setSoundEnabled(soundEnabledState); }, []);
 
@@ -105,6 +138,43 @@ export default function App() {
   const refreshStats = () => {
     api.getStats().then((s) => setStats(s as Stats)).catch(() => {});
   };
+
+  // Global Match Timer loop
+  useEffect(() => {
+    const interval = setInterval(() => {
+      activeMatches.forEach(match => {
+        if (!match.created_at) return;
+        
+        const s = match.created_at;
+        const utcString = s.includes('T') ? s + (s.endsWith('Z') ? '' : 'Z') : s.replace(' ', 'T') + 'Z';
+        const start = new Date(utcString).getTime();
+        const currentElapsed = Math.max(0, Math.floor((Date.now() - start) / 1000));
+        
+        const isDoubles = !!match.player3_id;
+        const limitSeconds = (isDoubles ? matchTimeLimitDoublesState : matchTimeLimitSinglesState) * 60;
+        
+        if (currentElapsed >= limitSeconds) {
+          const lockKey = `alerted-${match.created_at}-${limitSeconds}`;
+          if (!localStorage.getItem(lockKey)) {
+            localStorage.setItem(lockKey, 'true');
+            sounds.notification('match');
+            if ('speechSynthesis' in window) {
+              const msg = new SpeechSynthesisUtterance(`${match.table_name || 'Table'}, time is up.`);
+              const voices = window.speechSynthesis.getVoices();
+              let voice = voices.find(v => 
+                v.lang.startsWith('en') && 
+                (voiceGenderState === 'female' ? /female|zira|samantha/i.test(v.name) : /male|david|mark/i.test(v.name))
+              );
+              if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
+              if (voice) msg.voice = voice;
+              window.speechSynthesis.speak(msg);
+            }
+          }
+        }
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeMatches, matchTimeLimitSinglesState, matchTimeLimitDoublesState, voiceGenderState]);
 
   const pushNotification = (n: Notification) => {
     setNotifications((prev) => [n, ...prev].slice(0, 5));
@@ -163,6 +233,9 @@ export default function App() {
       soundEnabled: soundEnabledState, setSoundEnabled: handleSetSoundEnabled,
       hideElo, setHideElo: handleSetHideElo,
       skipMatchConfirm, setSkipMatchConfirm: handleSetSkipMatchConfirm,
+      matchTimeLimitSingles: matchTimeLimitSinglesState, setMatchTimeLimitSingles: handleSetMatchTimeLimitSingles,
+      matchTimeLimitDoubles: matchTimeLimitDoublesState, setMatchTimeLimitDoubles: handleSetMatchTimeLimitDoubles,
+      voiceGender: voiceGenderState, setVoiceGender: handleSetVoiceGender,
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />

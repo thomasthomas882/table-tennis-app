@@ -263,8 +263,9 @@ function DoublesAnimation() {
   );
 }
 
-function Stopwatch({ startedAt }: { startedAt: string }) {
+function Stopwatch({ startedAt, isDoubles }: { startedAt: string; isDoubles: boolean }) {
   const [elapsed, setElapsed] = useState(0);
+  const { matchTimeLimitSingles, matchTimeLimitDoubles } = useApp();
 
   useEffect(() => {
     const start = parseUTC(startedAt).getTime();
@@ -277,10 +278,12 @@ function Stopwatch({ startedAt }: { startedAt: string }) {
   const h = Math.floor(elapsed / 3600);
   const m = Math.floor((elapsed % 3600) / 60);
   const s = elapsed % 60;
-  const warn = elapsed > 1800; // > 30 min
+  
+  const limitSeconds = (isDoubles ? matchTimeLimitDoubles : matchTimeLimitSingles) * 60;
+  const warn = elapsed >= limitSeconds;
 
   return (
-    <span className={`font-mono tabular-nums text-sm font-semibold ${warn ? 'text-red-400' : 'text-orange-400'}`}>
+    <span className={`font-mono tabular-nums text-sm font-semibold ${warn ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>
       ⏱ {h > 0 ? `${h}:` : ''}{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
     </span>
   );
@@ -397,7 +400,7 @@ function ActiveMatchCard({ match, seriesContext }: { match: Match; seriesContext
             <span className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
             LIVE {isDoubles && '· DOUBLES'}
           </span>
-          <Stopwatch startedAt={match.created_at} />
+          <Stopwatch startedAt={match.created_at} isDoubles={isDoubles} />
         </div>
         <div className="flex items-center gap-2 text-xs text-muted">
           {match.table_name && <span className="text-secondary">📍 {match.table_name}</span>}

@@ -1,27 +1,44 @@
 import { useState, useEffect, useRef } from 'react';
+import { useApp } from '../App';
+import { api } from '../api';
+import { Player, Table } from '../types';
+import { SearchableSelect } from '../components/SearchableSelect';
+import { sounds } from '../utils/sounds';
+import { useTouchSort } from '../utils/useTouchSort';
 
-function Stopwatch({ startedAt }: { startedAt: string }) {
+function Stopwatch({ startedAt, tableName, isDoubles }: { startedAt: string, tableName: string, isDoubles: boolean }) {
   const [elapsed, setElapsed] = useState(0);
+  const { matchTimeLimitSingles, matchTimeLimitDoubles } = useApp();
+
   useEffect(() => {
-    const start = new Date(startedAt.includes('T') ? startedAt + (startedAt.endsWith('Z') ? '' : 'Z') : startedAt.replace(' ', 'T') + 'Z').getTime();
-    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    const s = startedAt;
+    const utcString = s.includes('T') ? s + (s.endsWith('Z') ? '' : 'Z') : s.replace(' ', 'T') + 'Z';
+    const start = new Date(utcString).getTime();
+    const update = () => {
+      const currentElapsed = Math.max(0, Math.floor((Date.now() - start) / 1000));
+      setElapsed(currentElapsed);
+    };
     update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
   }, [startedAt]);
   const h = Math.floor(elapsed / 3600);
   const m = Math.floor((elapsed % 3600) / 60);
   const s = elapsed % 60;
-  const warn = elapsed > 1800;
+  const limitSeconds = (isDoubles ? matchTimeLimitDoubles : matchTimeLimitSingles) * 60;
+  const warn = elapsed >= limitSeconds;
   return (
-    <span className={`font-mono tabular-nums text-xs font-semibold ${warn ? 'text-red-400' : 'text-white/70'}`}>
-      {h > 0 ? `${h}:` : ''}{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
-    </span>
+    <div className="flex flex-col items-center gap-1.5 animate-fade-in z-10">
+      <div className="flex items-center gap-1.5 text-red-400 font-bold text-[10px] uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-full border border-red-500/30">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.8)]" />
+        {warn ? 'Time Up' : 'Live'}
+      </div>
+      <span className={`font-mono tabular-nums text-3xl font-bold tracking-tight drop-shadow-md ${warn ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+        {h > 0 ? `${h}:` : ''}{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
+      </span>
+    </div>
   );
 }
-import { useApp } from '../App';
-import { api } from '../api';
-import { Player, Table } from '../types';
 
 function formatWaitTime(joinedAt: string): string {
   const joined = new Date(
@@ -37,10 +54,6 @@ function formatWaitTime(joinedAt: string): string {
   const mins = diffMin % 60;
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
-import { SearchableSelect } from '../components/SearchableSelect';
-import { sounds } from '../utils/sounds';
-import { useTouchSort } from '../utils/useTouchSort';
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface TableSides { A: number[]; B: number[] }
@@ -119,6 +132,7 @@ interface TableCardProps {
   selectedQueuePlayer: { id: number; name: string } | null;
   onTapSide: (tableId: number, side: 'A' | 'B') => void;
   matchStartedAt?: string;
+  isDoubles?: boolean;
 }
 
 function TableCard({
@@ -128,7 +142,7 @@ function TableCard({
   onCardDragStart, onCardDragOver, onCardDrop,
   allPlayers, starting,
   selectedQueuePlayer, onTapSide,
-  matchStartedAt,
+  matchStartedAt, isDoubles,
 }: TableCardProps) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
@@ -257,9 +271,8 @@ function TableCard({
         </div>
 
         {isOccupied && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/20 pointer-events-none">
-            <span className="text-white/60 text-xs font-semibold">Match in progress</span>
-            {matchStartedAt && <Stopwatch startedAt={matchStartedAt} />}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 pointer-events-none backdrop-blur-sm">
+            {matchStartedAt && <Stopwatch startedAt={matchStartedAt} tableName={table.name} isDoubles={!!isDoubles} />}
           </div>
         )}
       </div>
@@ -783,6 +796,7 @@ export default function QueuePage() {
                     selectedQueuePlayer={selectedQueuePlayer}
                     onTapSide={handleTapSide}
                     matchStartedAt={activeMatch?.created_at}
+                    isDoubles={!!activeMatch?.player3_id}
                   />
                 );
               })}

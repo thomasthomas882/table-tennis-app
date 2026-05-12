@@ -73,6 +73,7 @@ function checkAndAward(db, {
       if (loserScore === 0 && winnerScore > 0) award(id, 'bagel');
       if (scoreDiff === 2)  award(id, 'squeaky');
       if (scoreDiff >= 7)   award(id, 'obliterate');
+      if (winnerScore >= 12) award(id, 'deuce_master');
 
       // ELO milestones
       if (p.elo >= 1100) award(id, 'rising_star');
@@ -103,6 +104,34 @@ function checkAndAward(db, {
       if (cnt >= 5)  award(id, 'social_butterfly');
       if (cnt >= 10) award(id, 'rivals');
 
+      // Giant Slayer
+      const giantSlayerRow = db.prepare(`
+        SELECT COUNT(DISTINCT loser_id) as cnt
+        FROM (
+          SELECT 
+            CASE WHEN m.player1_id = ? THEN m.player2_id ELSE m.player1_id END as loser_id,
+            eh_win.elo - eh_win.elo_delta as winner_elo_before,
+            eh_lose.elo - eh_lose.elo_delta as loser_elo_before
+          FROM matches m
+          JOIN elo_history eh_win ON eh_win.match_id = m.id AND eh_win.player_id = ?
+          JOIN elo_history eh_lose ON eh_lose.match_id = m.id AND eh_lose.player_id = (CASE WHEN m.player1_id = ? THEN m.player2_id ELSE m.player1_id END)
+          WHERE m.status = 'completed' AND m.winner_id = ? AND m.player3_id IS NULL
+        )
+        WHERE loser_elo_before > winner_elo_before
+      `).get(id, id, id, id);
+      if (giantSlayerRow?.cnt >= 3) award(id, 'giant_slayer');
+
+      // Sweep
+      if (match.series_id) {
+        const series = db.prepare('SELECT * FROM series WHERE id = ?').get(match.series_id);
+        if (series && series.status === 'completed' && series.winner_id === id) {
+          const theirWins = series.player1_id === id ? series.wins2 : series.wins1;
+          if (theirWins === 0) {
+            award(id, 'sweep');
+          }
+        }
+      }
+
       // Time-based
       if (utcHour >= 21)             award(id, 'night_owl');
       if (utcHour >= 0 && utcHour <= 7) award(id, 'dedicated');
@@ -111,6 +140,27 @@ function checkAndAward(db, {
     if (isDoubles) {
       if ((p.doubles_wins ?? 0) >= 1)  award(id, 'dynamic_duo');
       if ((p.doubles_wins ?? 0) >= 10) award(id, 'doubles_devotee');
+    }
+
+    // Iron Man & Flawless Day
+    const todayDate = match.completed_at ? match.completed_at.split('T')[0] : new Date().toISOString().split('T')[0];
+    const todayMatches = db.prepare(`
+      SELECT id, winner_id, player1_id, player2_id, player3_id, player4_id
+      FROM matches
+      WHERE status = 'completed' 
+        AND (player1_id = ? OR player2_id = ? OR player3_id = ? OR player4_id = ?)
+        AND DATE(completed_at) = ?
+    `).all(id, id, id, id, todayDate);
+    
+    if (todayMatches.length >= 10) award(id, 'iron_man');
+    
+    if (todayMatches.length >= 3) {
+      const wonAll = todayMatches.every(m => {
+        const isTeam1 = m.player1_id === id || m.player3_id === id;
+        const winnerOnTeam1 = m.winner_id === m.player1_id || m.winner_id === m.player3_id;
+        return isTeam1 ? winnerOnTeam1 : !winnerOnTeam1;
+      });
+      if (wonAll) award(id, 'flawless_day');
     }
   }
 
@@ -132,6 +182,8 @@ function checkAndAward(db, {
       // Losing streaks
       if (p.current_losing_streak >= 3) award(id, 'rough_patch');
       if (p.current_losing_streak >= 5) award(id, 'rock_bottom');
+
+      if (loserScore * 2 < winnerScore) award(id, 'warming_up');
 
       // Freefall: current ELO is 100+ below historical best
       const bestRow = db.prepare(
@@ -194,6 +246,69 @@ function awardStatBasedAchievements(db, player) {
   `).get(player.id, player.id, player.id, player.id);
   if (row?.cnt >= 5)  award('social_butterfly');
   if (row?.cnt >= 10) award('rivals');
+
+  // Retroactive checks for new achievements
+  const giantSlayerRow = db.prepare(`
+    SELECT COUNT(DISTINCT loser_id) as cnt
+    FROM (
+      SELECT 
+        CASE WHEN m.player1_id = ? THEN m.player2_id ELSE m.player1_id END as loser_id,
+        eh_win.elo - eh_win.elo_delta as winner_elo_before,
+        eh_lose.elo - eh_lose.elo_delta as loser_elo_before
+      FROM matches m
+      JOIN elo_history eh_win ON eh_win.match_id = m.id AND eh_win.player_id = ?
+      JOIN elo_history eh_lose ON eh_lose.match_id = m.id AND eh_lose.player_id = (CASE WHEN m.player1_id = ? THEN m.player2_id ELSE m.player1_id END)
+      WHERE m.status = 'completed' AND m.winner_id = ? AND m.player3_id IS NULL
+    )
+    WHERE loser_elo_before > winner_elo_before
+  `).get(player.id, player.id, player.id, player.id);
+  if (giantSlayerRow?.cnt >= 3) award('giant_slayer');
+
+  const sweepRow = db.prepare(`
+    SELECT COUNT(*) as cnt FROM series
+    WHERE status = 'completed' AND winner_id = ?
+    AND ((player1_id = ? AND wins2 = 0) OR (player2_id = ? AND wins1 = 0))
+  `).get(player.id, player.id, player.id);
+  if (sweepRow?.cnt >= 1) award('sweep');
+
+  const deuceRow = db.prepare(`
+    SELECT COUNT(*) as cnt FROM matches
+    WHERE status = 'completed' AND winner_id = ? AND player3_id IS NULL
+    AND ((player1_id = ? AND player1_score >= 12) OR (player2_id = ? AND player2_score >= 12))
+  `).get(player.id, player.id, player.id);
+  if (deuceRow?.cnt >= 1) award('deuce_master');
+
+  const warmingRow = db.prepare(`
+    SELECT COUNT(*) as cnt FROM matches
+    WHERE status = 'completed' AND winner_id != ? AND winner_id IS NOT NULL AND (player1_id = ? OR player2_id = ?) AND player3_id IS NULL
+    AND ((player1_id = ? AND player1_score * 2 < player2_score) OR (player2_id = ? AND player2_score * 2 < player1_score))
+  `).get(player.id, player.id, player.id, player.id, player.id);
+  if (warmingRow?.cnt >= 1) award('warming_up');
+
+  const allMatches = db.prepare(`
+    SELECT id, winner_id, player1_id, player2_id, player3_id, player4_id, DATE(completed_at) as day
+    FROM matches
+    WHERE status = 'completed' AND (player1_id = ? OR player2_id = ? OR player3_id = ? OR player4_id = ?)
+  `).all(player.id, player.id, player.id, player.id);
+  
+  const matchesByDay = {};
+  for (const m of allMatches) {
+    if (!matchesByDay[m.day]) matchesByDay[m.day] = [];
+    matchesByDay[m.day].push(m);
+  }
+  
+  for (const day in matchesByDay) {
+    const dayMatches = matchesByDay[day];
+    if (dayMatches.length >= 10) award('iron_man');
+    if (dayMatches.length >= 3) {
+      const wonAll = dayMatches.every(m => {
+        const isTeam1 = m.player1_id === player.id || m.player3_id === player.id;
+        const winnerOnTeam1 = m.winner_id === m.player1_id || m.winner_id === m.player3_id;
+        return isTeam1 ? winnerOnTeam1 : !winnerOnTeam1;
+      });
+      if (wonAll) award('flawless_day');
+    }
+  }
 
   // Freefall: historical best is 100+ above current ELO
   const bestRow = db.prepare(
