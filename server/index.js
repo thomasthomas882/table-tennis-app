@@ -1235,12 +1235,30 @@ app.post('/api/reset', (req, res) => {
 
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 
+let currentRoomCode = null;
+
 io.on('connection', (socket) => {
   socket.emit('init', {
     players: db.prepare('SELECT * FROM players ORDER BY elo DESC').all(),
     queue: getQueue(),
     tables: getTables(),
     matches: getMatches('in_progress'),
+    roomCode: currentRoomCode
+  });
+
+  socket.on('generate_room_code', (cb) => {
+    currentRoomCode = Math.floor(100000 + Math.random() * 900000).toString();
+    broadcast('room_code_updated', currentRoomCode);
+    if (cb) cb({ success: true, code: currentRoomCode });
+  });
+
+  socket.on('join_room', (code, cb) => {
+    if (currentRoomCode && code === currentRoomCode) {
+      socket.join('club_room');
+      if (cb) cb({ success: true });
+    } else {
+      if (cb) cb({ success: false, message: 'Invalid room code' });
+    }
   });
 });
 

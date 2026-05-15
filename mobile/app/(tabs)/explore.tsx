@@ -1,112 +1,274 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useApp } from './_layout';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const SERVER_URL = 'http://192.168.68.179:3001';
 
-export default function TabTwoScreen() {
+export default function ProfileScreen() {
+  const { activePlayerId } = useApp();
+  const [statsData, setStatsData] = useState<any>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activePlayerId) return;
+
+    let isMounted = true;
+    setLoading(true);
+
+    const fetchData = async () => {
+      try {
+        const [statsRes, achievementsRes] = await Promise.all([
+          fetch(`${SERVER_URL}/api/players/${activePlayerId}/stats`),
+          fetch(`${SERVER_URL}/api/players/${activePlayerId}/achievements`)
+        ]);
+
+        if (!statsRes.ok || !achievementsRes.ok) throw new Error('Failed to fetch profile data');
+
+        const stats = await statsRes.json();
+        const achs = await achievementsRes.json();
+
+        if (isMounted) {
+          setStatsData(stats);
+          setAchievements(achs);
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error(e);
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activePlayerId]);
+
+  if (!activePlayerId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>👤</Text>
+          <Text style={styles.emptyTitle}>No Profile Selected</Text>
+          <Text style={styles.emptyText}>Go to the Join tab and select or create a player profile to view your stats!</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loading || !statsData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color="#22c55e" />
+          <Text style={styles.loadingText}>Loading Profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const { player, recentMatches } = statsData;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{player.name}'s Profile</Text>
+        </View>
+
+        {/* ELO Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Current Rating</Text>
+          <Text style={styles.eloText}>{player.elo} <Text style={styles.eloSubtext}>ELO</Text></Text>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={[styles.card, styles.statCard]}>
+            <Text style={styles.cardTitle}>Wins</Text>
+            <Text style={styles.statValue}>{player.wins}</Text>
+          </View>
+          <View style={[styles.card, styles.statCard]}>
+            <Text style={styles.cardTitle}>Losses</Text>
+            <Text style={styles.statValue}>{player.losses}</Text>
+          </View>
+        </View>
+
+        {/* Recent Matches */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Recent Matches</Text>
+          {recentMatches && recentMatches.length > 0 ? (
+            recentMatches.slice(0, 5).map((match: any, i: number) => {
+              const onTeam1 = match.player1_id === player.id || match.player3_id === player.id;
+              const team1Won = match.winner_id === match.player1_id;
+              const isWin = (onTeam1 && team1Won) || (!onTeam1 && !team1Won);
+              const opponentNames = onTeam1 
+                ? [match.player2_name, match.player4_name].filter(Boolean).join(' & ')
+                : [match.player1_name, match.player3_name].filter(Boolean).join(' & ');
+
+              return (
+                <View key={match.id} style={styles.matchItem}>
+                  <Text style={styles.matchOpponent} numberOfLines={1}>vs. {opponentNames}</Text>
+                  <Text style={isWin ? styles.matchWin : styles.matchLoss}>
+                    {isWin ? 'W' : 'L'} {match.score_team1}-{match.score_team2}
+                  </Text>
+                </View>
+              );
+            })
+          ) : (
+            <Text style={styles.emptyText}>No recent matches played.</Text>
+          )}
+        </View>
+
+        {/* Achievements */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Recent Achievements</Text>
+          <View style={styles.achievementRow}>
+            {achievements && achievements.length > 0 ? (
+              achievements.slice(0, 4).map((ach) => (
+                <View key={ach.id} style={styles.achievementBadge}>
+                  <Text style={styles.achievementIcon}>{ach.icon}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No achievements unlocked yet.</Text>
+            )}
+          </View>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#0a1628',
   },
-  titleContainer: {
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  loadingText: {
+    color: '#22c55e',
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 40,
+    gap: 15,
+  },
+  header: {
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  card: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  cardTitle: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+    fontWeight: '600',
+  },
+  eloText: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: '#22c55e',
+  },
+  eloSubtext: {
+    fontSize: 20,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  statsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 15,
   },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  matchItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  matchOpponent: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+    marginRight: 10,
+  },
+  matchWin: {
+    color: '#22c55e',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  matchLoss: {
+    color: '#ef4444',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  achievementRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+    marginTop: 5,
+  },
+  achievementBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0f172a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  achievementIcon: {
+    fontSize: 28,
+  }
 });

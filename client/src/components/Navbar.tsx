@@ -31,7 +31,7 @@ function DigitalClock() {
 }
 
 export default function Navbar({ connected }: { connected: boolean }) {
-  const { queue, activeMatches } = useApp();
+  const { queue, activeMatches, roomCode, generateRoomCode } = useApp();
 
   return (
     <nav className="bg-nav backdrop-blur-sm border-b border-theme sticky top-0 z-40">
@@ -79,11 +79,27 @@ export default function Navbar({ connected }: { connected: boolean }) {
           ))}
         </div>
 
-        {/* Right side: connection status then clock at far edge */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1.5 text-xs">
+        {/* Right side: room code, connection status, clock */}
+        <div className="flex items-center gap-4 flex-shrink-0">
+          
+          {/* Room Code Button */}
+          {roomCode ? (
+            <div className="flex items-center gap-2 bg-input px-3 py-1 rounded-lg border border-theme">
+              <span className="text-xs text-muted uppercase tracking-wider font-bold">Room</span>
+              <span className="font-mono text-lg font-black text-green-400 tracking-[0.2em]">{roomCode}</span>
+            </div>
+          ) : (
+            <button 
+              onClick={generateRoomCode}
+              className="text-xs font-bold bg-green-500/20 text-green-400 hover:bg-green-500/30 px-3 py-1.5 rounded-lg border border-green-500/30 transition-colors"
+            >
+              Start Room
+            </button>
+          )}
+
+          <div className="flex items-center gap-1.5 text-xs hidden sm:flex">
             <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${connected ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-600'}`} />
-            <span className={`hidden sm:inline transition-colors duration-500 ${connected ? 'text-green-400' : 'text-muted'}`}>
+            <span className={`transition-colors duration-500 ${connected ? 'text-green-400' : 'text-muted'}`}>
               {connected ? 'Live' : 'Offline'}
             </span>
           </div>

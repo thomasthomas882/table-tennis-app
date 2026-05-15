@@ -41,6 +41,8 @@ interface AppCtx {
   setMatchTimeLimitDoubles: (v: number) => void;
   voiceGender: 'male' | 'female';
   setVoiceGender: (v: 'male' | 'female') => void;
+  roomCode: string | null;
+  generateRoomCode: () => void;
 }
 
 const AppContext = createContext<AppCtx>({
@@ -53,6 +55,7 @@ const AppContext = createContext<AppCtx>({
   matchTimeLimitSingles: 15, setMatchTimeLimitSingles: () => {},
   matchTimeLimitDoubles: 20, setMatchTimeLimitDoubles: () => {},
   voiceGender: 'female', setVoiceGender: () => {},
+  roomCode: null, generateRoomCode: () => {},
 });
 
 export function useApp() {
@@ -69,6 +72,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [connected, setConnected] = useState(false);
+  const [roomCode, setRoomCode] = useState<string | null>(null);
   const [theme, setThemeState] = useState<Theme>(() => {
     return (localStorage.getItem('pingtrack-theme') as Theme) || 'dark';
   });
@@ -192,7 +196,10 @@ export default function App() {
       setQueue(data.queue);
       setTables(data.tables);
       setActiveMatches(data.matches);
+      if (data.roomCode) setRoomCode(data.roomCode);
     });
+
+    socket.on('room_code_updated', setRoomCode);
 
     socket.on('players:updated', setPlayers);
     socket.on('queue:updated', setQueue);
@@ -226,6 +233,12 @@ export default function App() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
+  const generateRoomCode = () => {
+    socket.emit('generate_room_code', (res: any) => {
+      if (res?.success) setRoomCode(res.code);
+    });
+  };
+
   return (
     <AppContext.Provider value={{
       players, queue, tables, activeMatches, stats, connected, refreshStats,
@@ -236,6 +249,7 @@ export default function App() {
       matchTimeLimitSingles: matchTimeLimitSinglesState, setMatchTimeLimitSingles: handleSetMatchTimeLimitSingles,
       matchTimeLimitDoubles: matchTimeLimitDoublesState, setMatchTimeLimitDoubles: handleSetMatchTimeLimitDoubles,
       voiceGender: voiceGenderState, setVoiceGender: handleSetVoiceGender,
+      roomCode, generateRoomCode
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
