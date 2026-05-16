@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Notification } from '../types';
 import { sounds } from '../utils/sounds';
 
@@ -21,6 +21,41 @@ interface Props {
   onDismiss: (id: number) => void;
 }
 
+function NotificationItem({ n, onDismiss }: { n: Notification; onDismiss: (id: number) => void }) {
+  const [exiting, setExiting] = useState(false);
+
+  // Auto-dismiss after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setExiting(true);
+    }, 4750);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Bulletproof unmount fallback
+  useEffect(() => {
+    if (exiting) {
+      const timer = setTimeout(() => onDismiss(n.id), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [exiting, n.id, onDismiss]);
+
+  return (
+    <div
+      className={`flex items-start gap-3 border rounded-lg px-4 py-3 shadow-xl backdrop-blur-sm ${
+        exiting ? 'animate-slide-out' : 'animate-slide-in'
+      } ${typeStyles[n.type]}`}
+    >
+      <span className="text-lg flex-shrink-0">{typeIcon[n.type]}</span>
+      <p className="text-sm flex-1">{n.message}</p>
+      <button
+        onClick={() => setExiting(true)}
+        className="text-current opacity-60 hover:opacity-100 flex-shrink-0 text-lg leading-none transition-opacity"
+      >×</button>
+    </div>
+  );
+}
+
 export default function NotificationToast({ notifications, onDismiss }: Props) {
   const prevLen = useRef(0);
 
@@ -31,21 +66,13 @@ export default function NotificationToast({ notifications, onDismiss }: Props) {
     prevLen.current = notifications.length;
   }, [notifications]);
 
-  if (notifications.length === 0) return null;
-
   return (
-    <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 max-w-sm w-full">
+    <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50 max-w-sm w-full pointer-events-none">
+      {/* Set pointer-events-none on wrapper so you can click through empty space,
+          then pointer-events-auto on the children so they can be dismissed */}
       {notifications.map((n) => (
-        <div
-          key={n.id}
-          className={`flex items-start gap-3 border rounded-lg px-4 py-3 shadow-xl backdrop-blur-sm animate-slide-in ${typeStyles[n.type]}`}
-        >
-          <span className="text-lg flex-shrink-0">{typeIcon[n.type]}</span>
-          <p className="text-sm flex-1">{n.message}</p>
-          <button
-            onClick={() => onDismiss(n.id)}
-            className="text-current opacity-60 hover:opacity-100 flex-shrink-0 text-lg leading-none"
-          >×</button>
+        <div key={n.id} className="pointer-events-auto">
+          <NotificationItem n={n} onDismiss={onDismiss} />
         </div>
       ))}
     </div>

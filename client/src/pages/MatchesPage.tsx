@@ -298,7 +298,7 @@ function ScoreDisplay({ value, flash }: { value: number; flash: boolean }) {
 }
 
 function PlayerTeamDisplay({ names, elos, leading }: { names: string[]; elos: (number | null)[]; leading: boolean }) {
-  const { hideElo } = useApp();
+  const { showElo } = useApp();
   return (
     <div className={`text-center transition-opacity duration-300 ${leading ? 'opacity-100' : 'opacity-60'}`}>
       {names.map((name, i) => (
@@ -309,7 +309,7 @@ function PlayerTeamDisplay({ names, elos, leading }: { names: string[]; elos: (n
       <p className={`text-sm font-semibold truncate ${leading ? 'text-primary' : 'text-secondary'}`}>
         {names.join(' & ')}
       </p>
-      {!hideElo && <p className="text-xs text-faint mb-2">ELO {elos.filter(Boolean).join(' / ')}</p>}
+      {showElo && <p className="text-xs text-faint mb-2">ELO {elos.filter(Boolean).join(' / ')}</p>}
     </div>
   );
 }
@@ -421,7 +421,7 @@ function ActiveMatchCard({ match, seriesContext }: { match: Match; seriesContext
       {/* Players + animation */}
       <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
         {/* Team A */}
-        <div className="text-center">
+        <div className="text-center min-w-0">
           <PlayerTeamDisplay names={teamANames} elos={teamAElos} leading={p1Leading} />
           <ScoreDisplay value={p1Score} flash={p1Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
@@ -438,7 +438,7 @@ function ActiveMatchCard({ match, seriesContext }: { match: Match; seriesContext
         </div>
 
         {/* Team B */}
-        <div className="text-center">
+        <div className="text-center min-w-0">
           <PlayerTeamDisplay names={teamBNames} elos={teamBElos} leading={p2Leading} />
           <ScoreDisplay value={p2Score} flash={p2Flash} />
           <div className="flex items-center justify-center gap-2 mt-2">
@@ -532,15 +532,15 @@ function CompletedMatchCard({ match }: { match: Match }) {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <div className={`flex-1 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
-          <p className={`text-sm font-medium ${p1Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamALabel}</p>
+        <div className={`flex-1 min-w-0 text-center p-2 rounded-lg ${p1Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
+          <p className={`text-sm font-medium truncate ${p1Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamALabel}</p>
           <p className={`text-3xl font-bold mt-0.5 ${p1Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}`}>{match.player1_score}</p>
           {p1Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
           {isDraw && <p className="text-xs text-yellow-400/70 mt-0.5">Draw</p>}
         </div>
         <div className="text-faint font-bold text-sm">vs</div>
-        <div className={`flex-1 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
-          <p className={`text-sm font-medium ${p2Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamBLabel}</p>
+        <div className={`flex-1 min-w-0 text-center p-2 rounded-lg ${p2Won ? 'bg-green-500/10' : isDraw ? 'bg-yellow-500/5' : ''}`}>
+          <p className={`text-sm font-medium truncate ${p2Won ? 'text-primary' : isDraw ? 'text-yellow-300/80' : 'text-muted'}`}>{teamBLabel}</p>
           <p className={`text-3xl font-bold mt-0.5 ${p2Won ? 'text-green-400' : isDraw ? 'text-yellow-400' : 'text-faint'}`}>{match.player2_score}</p>
           {p2Won && <p className="text-xs text-green-400 mt-0.5">Winner 🏆</p>}
           {isDraw && <p className="text-xs text-yellow-400/70 mt-0.5">Draw</p>}
@@ -584,7 +584,7 @@ function SeriesCard({ series, onCancel }: { series: Series; onCancel: (id: numbe
 
       <div className="flex items-center gap-3">
         {/* Player 1 */}
-        <div className={`flex-1 text-center ${series.winner_id === series.player1_id ? 'opacity-100' : isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+        <div className={`flex-1 min-w-0 text-center ${series.winner_id === series.player1_id ? 'opacity-100' : isCompleted ? 'opacity-50' : 'opacity-100'}`}>
           <p className={`font-semibold text-sm truncate mb-1 ${series.winner_id === series.player1_id ? 'text-green-400' : 'text-primary'}`}>
             {series.player1_name}
             {series.winner_id === series.player1_id && ' 🏆'}
@@ -601,7 +601,7 @@ function SeriesCard({ series, onCancel }: { series: Series; onCancel: (id: numbe
         </div>
 
         {/* Player 2 */}
-        <div className={`flex-1 text-center ${series.winner_id === series.player2_id ? 'opacity-100' : isCompleted ? 'opacity-50' : 'opacity-100'}`}>
+        <div className={`flex-1 min-w-0 text-center ${series.winner_id === series.player2_id ? 'opacity-100' : isCompleted ? 'opacity-50' : 'opacity-100'}`}>
           <p className={`font-semibold text-sm truncate mb-1 ${series.winner_id === series.player2_id ? 'text-green-400' : 'text-primary'}`}>
             {series.player2_name}
             {series.winner_id === series.player2_id && ' 🏆'}

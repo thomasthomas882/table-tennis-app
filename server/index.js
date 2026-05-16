@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 
 function broadcast(event, data) { io.emit(event, data); }
 function notify(message, type = 'info') {
-  broadcast('notification', { message, type, id: Date.now() });
+  broadcast('notification', { message, type, id: Date.now() + Math.random() });
 }
 
 // ─── Players ─────────────────────────────────────────────────────────────────

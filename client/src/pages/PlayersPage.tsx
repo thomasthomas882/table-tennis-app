@@ -14,7 +14,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 export default function PlayersPage() {
-  const { players, queue, activeMatches, hideElo, refreshStats } = useApp();
+  const { players, queue, activeMatches, showElo, refreshStats } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState<'add' | 'find'>('add');
   const [newName, setNewName] = useState('');
@@ -207,7 +207,7 @@ export default function PlayersPage() {
                 </div>
 
                 <h3 className="font-semibold truncate pr-4">{p.name}</h3>
-                {!hideElo && (
+                {showElo && (
                   <div className="flex gap-3 mt-0.5">
                     <div>
                       <p className="text-2xl font-bold text-green-400 tabular-nums">

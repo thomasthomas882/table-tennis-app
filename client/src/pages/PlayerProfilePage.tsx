@@ -165,7 +165,7 @@ const ANIM_MAP: Record<string, string> = {
 export default function PlayerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hideElo } = useApp();
+  const { showElo } = useApp();
   const [stats, setStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [eloTab, setEloTab] = useState<'singles' | 'doubles'>('singles');
@@ -335,7 +335,7 @@ export default function PlayerProfilePage() {
               <div className="border-r border-theme pr-5">
                 <p className="text-xs text-muted font-medium mb-1 uppercase tracking-wide">Singles</p>
                 <div className="flex flex-wrap gap-4">
-                  {!hideElo && (
+                  {showElo && (
                     <div>
                       <p className="text-3xl font-bold text-green-400 tabular-nums">{player.elo}</p>
                       <p className="text-xs text-muted">ELO{singlesEloDelta !== 0 && <span className={`ml-1 ${singlesEloDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>({singlesEloDelta > 0 ? '+' : ''}{singlesEloDelta})</span>}</p>
@@ -357,7 +357,7 @@ export default function PlayerProfilePage() {
               <div>
                 <p className="text-xs text-muted font-medium mb-1 uppercase tracking-wide">Doubles</p>
                 <div className="flex flex-wrap gap-4">
-                  {!hideElo && (
+                  {showElo && (
                     <div>
                       <p className="text-3xl font-bold text-blue-400 tabular-nums">{player.elo_doubles ?? 1000}</p>
                       <p className="text-xs text-muted">ELO{doublesEloDelta !== 0 && <span className={`ml-1 ${doublesEloDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>({doublesEloDelta > 0 ? '+' : ''}{doublesEloDelta})</span>}</p>
@@ -376,7 +376,7 @@ export default function PlayerProfilePage() {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* ELO history chart */}
-        {!hideElo && (
+        {showElo && (
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">ELO Progression</h2>

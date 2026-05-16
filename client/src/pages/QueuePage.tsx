@@ -73,10 +73,10 @@ function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
 // ─── Player bubble on table ──────────────────────────────────────────────────
 
 function PlayerBubbleOnTable({
-  playerId, allPlayers, onRemove, side, compact,
+  playerId, allPlayers, onRemove, side, compact, readOnly
 }: {
   playerId: number; allPlayers: Player[]; onRemove: () => void;
-  side: 'A' | 'B'; compact: boolean;
+  side: 'A' | 'B'; compact: boolean; readOnly?: boolean;
 }) {
   const player = allPlayers.find(p => p.id === playerId);
   if (!player) return null;
@@ -97,10 +97,12 @@ function PlayerBubbleOnTable({
         >
           {player.name[0].toUpperCase()}
         </div>
-        <button
-          onClick={() => { sounds.remove(); onRemove(); }}
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-        >×</button>
+        {!readOnly && (
+          <button
+            onClick={() => { sounds.remove(); onRemove(); }}
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+          >×</button>
+        )}
       </div>
       <span className={`${label} text-white/80 font-medium text-center truncate leading-tight transition-all duration-300`}>
         {player.name.split(' ')[0]}
@@ -219,6 +221,7 @@ function TableCard({
                 <PlayerBubbleOnTable
                   key={pid} playerId={pid} allPlayers={allPlayers} side="A"
                   onRemove={() => onRemovePlayer(pid, 'A')} compact={sides.A.length === 2}
+                  readOnly={isOccupied}
                 />
               ))
             )}
@@ -256,6 +259,7 @@ function TableCard({
                 <PlayerBubbleOnTable
                   key={pid} playerId={pid} allPlayers={allPlayers} side="B"
                   onRemove={() => onRemovePlayer(pid, 'B')} compact={sides.B.length === 2}
+                  readOnly={isOccupied}
                 />
               ))
             )}
@@ -271,7 +275,7 @@ function TableCard({
         </div>
 
         {isOccupied && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 pointer-events-none backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 pointer-events-none">
             {matchStartedAt && <Stopwatch startedAt={matchStartedAt} tableName={table.name} isDoubles={!!isDoubles} />}
           </div>
         )}
@@ -305,7 +309,7 @@ function TableCard({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function QueuePage() {
-  const { players, queue, tables, activeMatches, hideElo } = useApp();
+  const { players, queue, tables, activeMatches, showElo } = useApp();
 
   // ── Touch device detection ─────────────────────────────────────
   const isTouchDevice = useRef(
@@ -477,7 +481,7 @@ export default function QueuePage() {
         'box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px rgba(74,222,128,0.1)',
         'white-space:nowrap', 'pointer-events:none',
       ].join(';');
-      const eloHtml = !hideElo
+      const eloHtml = showElo
         ? `<span style="color:#4ade80;font-size:11px;font-weight:700;opacity:0.85">${player.elo}</span>`
         : '';
       ghost.innerHTML = `
@@ -651,13 +655,13 @@ export default function QueuePage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_2fr] gap-6">
+      <div className="grid lg:grid-cols-[5fr_7fr] gap-6">
 
         {/* ── Left: Queue ──────────────────────────────────────── */}
         <div className="space-y-4">
           <div className="card space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Waiting Queue</h2>
+              <h2 className="font-semibold text-lg">Lobby</h2>
               <span className="badge bg-card border border-theme text-secondary">{queue.length} players</span>
             </div>
 
@@ -667,7 +671,7 @@ export default function QueuePage() {
                 <p className="text-sm">Queue is empty — add players below</p>
               </div>
             ) : (
-              <ol ref={queueListRef} className="space-y-2">
+              <ol ref={queueListRef} className="grid grid-cols-2 gap-2">
                 {queue.map((entry, i) => {
                   const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
@@ -691,7 +695,7 @@ export default function QueuePage() {
                       onDrop={e => handleQueueItemDrop(e, entry.player_id)}
                       {...getTouchHandlers(i)}
                       onClick={() => handleTapQueueItem(entry.player_id, entry.name)}
-                      className={`flex items-center gap-3 p-4 min-h-[64px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+                      className={`flex items-center gap-2 p-2.5 min-h-[64px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
                       } ${isSelected ? 'border-green-400 ring-2 ring-green-400/50 bg-green-500/10' : isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
                         isStaged ? 'opacity-70' : ''
@@ -703,18 +707,18 @@ export default function QueuePage() {
                       </span>
                       <Avatar name={entry.name} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-base truncate">{entry.name}</p>
-                        <p className="text-sm text-muted">
-                          {!hideElo && <>ELO {entry.elo}</>}
-                          <span className={hideElo ? '' : 'ml-2'}>⏳ {formatWaitTime(entry.joined_at)}</span>
+                        <p className="font-medium text-sm truncate">{entry.name}</p>
+                        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted">
+                          {showElo && <span>ELO {entry.elo}</span>}
+                          <span>⏳ {formatWaitTime(entry.joined_at)}</span>
                           {stagedOnTable && (
-                            <span className="ml-2 text-blue-400">📍 {stagedOnTable.name}</span>
+                            <span className="text-blue-400">📍 {stagedOnTable.name}</span>
                           )}
-                        </p>
+                        </div>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); leaveQueue(entry.player_id); }}
-                        className="text-faint hover:text-red-400 transition-colors text-xl leading-none w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10 flex-shrink-0"
+                        className="text-faint hover:text-red-400 transition-colors text-3xl leading-none w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-500/10 flex-shrink-0"
                         title="Remove from queue"
                       >×</button>
                     </li>
@@ -735,9 +739,10 @@ export default function QueuePage() {
               <p className="text-xs font-medium text-secondary mb-2 uppercase tracking-wider">Add player to queue</p>
               <div className="flex gap-2">
                 <SearchableSelect
-                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: hideElo ? undefined : `ELO ${p.elo}` }))}
+                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: !showElo ? undefined : `ELO ${p.elo}` }))}
                   value={selectedPlayer}
                   onChange={setSelectedPlayer}
+                  onEnter={() => { if (selectedPlayer && !addLoading) joinQueue(); }}
                   placeholder="Search player…"
                   className="flex-1"
                 />
@@ -754,10 +759,6 @@ export default function QueuePage() {
 
         {/* ── Right: Tables ─────────────────────────────────────── */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">Tables</h2>
-            <p className="text-xs text-muted">Drag ⠿ to reorder • Drag players onto sides</p>
-          </div>
 
           {orderedTables.length === 0 ? (
             <div className="card text-center py-10 text-muted">
@@ -768,11 +769,20 @@ export default function QueuePage() {
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
               {orderedTables.map(table => {
-                const sides = assignments[table.id] ?? { A: [], B: [] };
+                const activeMatch = activeMatches.find(m => m.table_id === table.id);
+                let sides = assignments[table.id] ?? { A: [], B: [] };
+                
+                // If occupied, override sides with the active match players
+                if (table.status === 'occupied' && activeMatch) {
+                  sides = {
+                    A: [activeMatch.player1_id, activeMatch.player3_id].filter(Boolean) as number[],
+                    B: [activeMatch.player2_id, activeMatch.player4_id].filter(Boolean) as number[]
+                  };
+                }
+
                 const dragOverSide = dragOverTableSide?.id === table.id ? dragOverTableSide.side : null;
                 const isDragOver = dragOverTableReorderId === table.id;
                 const isDragging = draggedTableId === table.id;
-                const activeMatch = activeMatches.find(m => m.table_id === table.id);
 
                 return (
                   <TableCard

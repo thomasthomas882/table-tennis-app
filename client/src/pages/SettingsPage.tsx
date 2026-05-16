@@ -225,11 +225,13 @@ export default function SettingsPage() {
   const { 
     theme, setTheme, tables,
     soundEnabled, setSoundEnabled, 
-    hideElo, setHideElo,
+    showElo, setShowElo,
     skipMatchConfirm, setSkipMatchConfirm,
     matchTimeLimitSingles, setMatchTimeLimitSingles,
     matchTimeLimitDoubles, setMatchTimeLimitDoubles,
-    voiceGender, setVoiceGender
+    voiceGender, setVoiceGender,
+    announcerVolume, setAnnouncerVolume,
+    notificationsEnabled, setNotificationsEnabled
   } = useApp();
   const [newTable, setNewTable] = useState('');
   const [loading, setLoading] = useState(false);
@@ -389,11 +391,19 @@ export default function SettingsPage() {
               />
               <div className="border-t border-theme/50" />
               <ToggleRow
+                icon="🔔"
+                label="Popup Notifications"
+                sublabel="Slide-in alerts for match starts and achievements"
+                value={notificationsEnabled}
+                onChange={() => { sounds.tick(); setNotificationsEnabled(!notificationsEnabled); }}
+              />
+              <div className="border-t border-theme/50" />
+              <ToggleRow
                 icon="👁"
-                label="Hide ELO Scores"
-                sublabel="Mask ratings across the app"
-                value={hideElo}
-                onChange={() => { sounds.tick(); setHideElo(!hideElo); }}
+                label="Show ELO Scores"
+                sublabel="Display ratings across the app"
+                value={showElo}
+                onChange={() => { sounds.tick(); setShowElo(!showElo); }}
               />
               <div className="border-t border-theme/50" />
               <ToggleRow
@@ -424,6 +434,22 @@ export default function SettingsPage() {
                   <option value="female">Female</option>
                   <option value="male">Male</option>
                 </select>
+              </label>
+              <div className="border-t border-theme/50" />
+              <label className="flex flex-col gap-1 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Announcer Volume</span>
+                  <span className="text-xs text-muted">{Math.round(announcerVolume * 100)}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="1" step="0.05" 
+                  value={announcerVolume} 
+                  onChange={e => setAnnouncerVolume(parseFloat(e.target.value))} 
+                  onMouseUp={() => sounds.tick()}
+                  onTouchEnd={() => sounds.tick()}
+                  className="w-full mt-1 accent-green-500"
+                />
               </label>
             </div>
           </div>
