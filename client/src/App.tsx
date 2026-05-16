@@ -166,6 +166,24 @@ export default function App() {
     localStorage.setItem('pingtrack-auto-start', String(v));
   };
 
+  // Sync state across tabs
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pingtrack-theme' && e.newValue) setThemeState(e.newValue as Theme);
+      if (e.key === 'pingtrack-sound' && e.newValue) setSoundEnabledState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-show-elo' && e.newValue) setShowEloState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-skip-match-confirm' && e.newValue) setSkipMatchConfirmState(e.newValue === 'true');
+      if (e.key === 'pingtrack-match-time' && e.newValue) setMatchTimeLimitSinglesState(parseInt(e.newValue, 10));
+      if (e.key === 'pingtrack-match-time-doubles' && e.newValue) setMatchTimeLimitDoublesState(parseInt(e.newValue, 10));
+      if (e.key === 'pingtrack-voice-gender' && e.newValue) setVoiceGenderState(e.newValue as 'male' | 'female');
+      if (e.key === 'pingtrack-announcer-volume' && e.newValue) setAnnouncerVolumeState(parseFloat(e.newValue));
+      if (e.key === 'pingtrack-notifications' && e.newValue) setNotificationsEnabledState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-auto-start' && e.newValue) setAutoStartMatchesState(e.newValue === 'true');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   // Sync sound module with persisted preference on mount
   useEffect(() => { setSoundEnabled(soundEnabledState); }, []);
 
@@ -194,23 +212,31 @@ export default function App() {
         
         if (currentElapsed >= limitSeconds) {
           const lockKey = `alerted-${match.created_at}-${limitSeconds}`;
+          // Initial check
           if (!localStorage.getItem(lockKey)) {
             localStorage.setItem(lockKey, 'true');
-            sounds.notification('match');
-            if ('speechSynthesis' in window) {
-              const msg = new SpeechSynthesisUtterance(`${match.table_name || 'Table'}, time is up.`);
-              const voices = window.speechSynthesis.getVoices();
-              let voice = voices.find(v => 
-                v.lang.startsWith('en') && 
-                (voiceGenderState === 'female' 
-                  ? /female|woman|zira|samantha|hazel|catherine|susan|victoria|karen|moira|tessa|fiona|google us english/i.test(v.name) 
-                  : /male|man|david|mark|george|alex|daniel|fred|oliver|arthur/i.test(v.name))
-              );
-              if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
-              if (voice) msg.voice = voice;
-              msg.volume = announcerVolumeState;
-              window.speechSynthesis.speak(msg);
-            }
+            
+            // Cross-tab deduplication using a random jitter
+            setTimeout(() => {
+              if (localStorage.getItem(`${lockKey}-spoken`)) return;
+              localStorage.setItem(`${lockKey}-spoken`, 'true');
+
+              sounds.notification('match');
+              if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(`${match.table_name || 'Table'}, time is up.`);
+                const voices = window.speechSynthesis.getVoices();
+                let voice = voices.find(v => 
+                  v.lang.startsWith('en') && 
+                  (voiceGenderState === 'female' 
+                    ? /female|woman|zira|samantha|hazel|catherine|susan|victoria|karen|moira|tessa|fiona|google us english/i.test(v.name) 
+                    : /male|man|david|mark|george|alex|daniel|fred|oliver|arthur/i.test(v.name))
+                );
+                if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
+                if (voice) msg.voice = voice;
+                msg.volume = announcerVolumeState;
+                window.speechSynthesis.speak(msg);
+              }
+            }, Math.random() * 200 + 50); // Jitter between 50ms and 250ms
           }
         }
       });
