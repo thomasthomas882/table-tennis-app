@@ -45,6 +45,8 @@ interface AppCtx {
   setAnnouncerVolume: (v: number) => void;
   notificationsEnabled: boolean;
   setNotificationsEnabled: (v: boolean) => void;
+  autoStartMatches: boolean;
+  setAutoStartMatches: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppCtx>({
@@ -59,6 +61,7 @@ const AppContext = createContext<AppCtx>({
   voiceGender: 'female', setVoiceGender: () => {},
   announcerVolume: 1, setAnnouncerVolume: () => {},
   notificationsEnabled: true, setNotificationsEnabled: () => {},
+  autoStartMatches: false, setAutoStartMatches: () => {},
 });
 
 export function useApp() {
@@ -102,6 +105,9 @@ export default function App() {
   });
   const [notificationsEnabledState, setNotificationsEnabledState] = useState<boolean>(() => {
     return localStorage.getItem('pingtrack-notifications') !== 'false';
+  });
+  const [autoStartMatchesState, setAutoStartMatchesState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-auto-start') === 'true';
   });
 
   const notificationsEnabledRef = useRef(notificationsEnabledState);
@@ -153,6 +159,11 @@ export default function App() {
   const handleSetNotificationsEnabled = (v: boolean) => {
     setNotificationsEnabledState(v);
     localStorage.setItem('pingtrack-notifications', String(v));
+  };
+
+  const handleSetAutoStartMatches = (v: boolean) => {
+    setAutoStartMatchesState(v);
+    localStorage.setItem('pingtrack-auto-start', String(v));
   };
 
   // Sync sound module with persisted preference on mount
@@ -267,6 +278,7 @@ export default function App() {
       voiceGender: voiceGenderState, setVoiceGender: handleSetVoiceGender,
       announcerVolume: announcerVolumeState, setAnnouncerVolume: handleSetAnnouncerVolume,
       notificationsEnabled: notificationsEnabledState, setNotificationsEnabled: handleSetNotificationsEnabled,
+      autoStartMatches: autoStartMatchesState, setAutoStartMatches: handleSetAutoStartMatches,
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />

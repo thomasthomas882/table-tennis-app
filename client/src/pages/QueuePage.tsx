@@ -145,7 +145,8 @@ function TableCard({
   allPlayers, starting,
   selectedQueuePlayer, onTapSide,
   matchStartedAt, isDoubles,
-}: TableCardProps) {
+  autoStartDeadline,
+}: TableCardProps & { autoStartDeadline?: number }) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
   const hasAssignments = sides.A.length + sides.B.length > 0;
@@ -188,6 +189,19 @@ function TableCard({
         <div className="absolute inset-[5px] border border-white/20 rounded-lg pointer-events-none" />
         {/* Center divider line */}
         <div className="absolute top-[5px] bottom-[5px] left-1/2 w-px bg-white/25 pointer-events-none" />
+        
+        {/* Auto-Start Timer Overlay */}
+        {autoStartDeadline && !isOccupied && canStart && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-fade-in">
+            <div className="flex flex-col items-center gap-1 bg-gray-900/90 border border-theme px-4 py-2 rounded-xl shadow-2xl scale-110">
+              <span className="text-[10px] text-green-400 font-bold tracking-widest uppercase animate-pulse">Starting</span>
+              <span className="text-3xl font-mono font-bold text-white tabular-nums drop-shadow-md">
+                {Math.max(0, Math.ceil((autoStartDeadline - Date.now()) / 1000))}s
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Net texture */}
         <div
           className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 pointer-events-none"
@@ -309,7 +323,7 @@ function TableCard({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function QueuePage() {
-  const { players, queue, tables, activeMatches, showElo } = useApp();
+  const { players, queue, tables, activeMatches, showElo, autoStartMatches } = useApp();
 
   // ── Touch device detection ─────────────────────────────────────
   const isTouchDevice = useRef(
@@ -348,6 +362,58 @@ export default function QueuePage() {
   // ── Table assignments ──────────────────────────────────────────
   const [assignments, setAssignments] = useState<Assignments>({});
   const [starting, setStarting] = useState<number | null>(null);
+  
+  // ── Auto-Start Countdown State ─────────────────────────────────
+  const [autoStartDeadlines, setAutoStartDeadlines] = useState<{ [tableId: number]: number }>({});
+  const [, setTimerTick] = useState(0);
+
+  // Auto-Start Timer Loop
+  useEffect(() => {
+    if (!autoStartMatches) return;
+    const interval = setInterval(() => {
+      setTimerTick(t => t + 1);
+      const now = Date.now();
+      for (const [tId, deadline] of Object.entries(autoStartDeadlines)) {
+        if (now >= deadline && starting !== Number(tId)) {
+          startMatch(Number(tId));
+        }
+      }
+    }, 100); // 100ms for smooth UI updates
+    return () => clearInterval(interval);
+  }, [autoStartDeadlines, autoStartMatches, starting]);
+
+  // Sync deadlines with assignments
+  useEffect(() => {
+    if (!autoStartMatches) {
+      setAutoStartDeadlines({});
+      return;
+    }
+    setAutoStartDeadlines(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const tId in assignments) {
+        const sides = assignments[tId];
+        const canStart = sides.A.length > 0 && sides.B.length > 0;
+        
+        // If it can start, set/reset the deadline
+        if (canStart) {
+          next[tId] = Date.now() + 15000;
+          changed = true;
+        } else if (next[tId]) {
+          delete next[tId];
+          changed = true;
+        }
+      }
+      // Also clean up any deadlines for tables that no longer have assignments
+      for (const tId in next) {
+        if (!assignments[tId]) {
+          delete next[tId];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [assignments, autoStartMatches]);
 
   // ── Queue form ─────────────────────────────────────────────────
   const [selectedPlayer, setSelectedPlayer] = useState('');
@@ -382,6 +448,25 @@ export default function QueuePage() {
       document.removeEventListener('dragend', resetDrag);
     };
   }, []);
+
+  // ── Sync table assignments with queue ────────────────────────────
+  useEffect(() => {
+    setAssignments(prev => {
+      let changed = false;
+      const next = { ...prev };
+      const currentQueuedIds = new Set(queue.map(q => q.player_id));
+      for (const tId in next) {
+        const t = next[tId];
+        const newA = t.A.filter(id => currentQueuedIds.has(id));
+        const newB = t.B.filter(id => currentQueuedIds.has(id));
+        if (newA.length !== t.A.length || newB.length !== t.B.length) {
+          next[tId] = { A: newA, B: newB };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [queue]);
 
   // ── Derived ────────────────────────────────────────────────────
   const queuedIds = new Set(queue.map(q => q.player_id));
@@ -432,10 +517,8 @@ export default function QueuePage() {
     if (curr[side].includes(pid) || curr[other].includes(pid) || curr[side].length >= 2) return;
 
     sounds.drop();
-    setAssignments(prev => ({
-      ...prev,
-      [tableId]: { ...curr, [side]: [...curr[side], pid] },
-    }));
+    const newAssignments = { ...curr, [side]: [...curr[side], pid] };
+    setAssignments(prev => ({ ...prev, [tableId]: newAssignments }));
     setSelectedQueuePlayer(null);
   }
 
@@ -552,10 +635,8 @@ export default function QueuePage() {
     if (curr[side].includes(pid) || curr[other].includes(pid) || curr[side].length >= 2) return;
 
     sounds.drop();
-    setAssignments(prev => ({
-      ...prev,
-      [tableId]: { ...curr, [side]: [...curr[side], pid] },
-    }));
+    const newAssignments = { ...curr, [side]: [...curr[side], pid] };
+    setAssignments(prev => ({ ...prev, [tableId]: newAssignments }));
     setDragOverTableSide(null);
     setDraggedPlayerId(null);
     setSelectedQueuePlayer(null);
@@ -572,8 +653,8 @@ export default function QueuePage() {
     setAssignments(prev => ({ ...prev, [tableId]: { A: [], B: [] } }));
   }
 
-  async function startMatch(tableId: number) {
-    const sides = assignments[tableId];
+  async function startMatch(tableId: number, directSides?: { A: number[]; B: number[] }) {
+    const sides = directSides || assignments[tableId];
     if (!sides || sides.A.length === 0 || sides.B.length === 0) return;
     setStarting(tableId);
     try {
@@ -789,6 +870,7 @@ export default function QueuePage() {
                     key={table.id}
                     table={table}
                     sides={sides}
+                    autoStartDeadline={autoStartDeadlines[table.id]}
                     dragOverSide={dragOverSide}
                     isDragOver={isDragOver}
                     isDragging={isDragging}

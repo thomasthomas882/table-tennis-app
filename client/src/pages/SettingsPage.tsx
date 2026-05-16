@@ -231,7 +231,8 @@ export default function SettingsPage() {
     matchTimeLimitDoubles, setMatchTimeLimitDoubles,
     voiceGender, setVoiceGender,
     announcerVolume, setAnnouncerVolume,
-    notificationsEnabled, setNotificationsEnabled
+    notificationsEnabled, setNotificationsEnabled,
+    autoStartMatches, setAutoStartMatches
   } = useApp();
   const [newTable, setNewTable] = useState('');
   const [loading, setLoading] = useState(false);
@@ -396,6 +397,14 @@ export default function SettingsPage() {
                 sublabel="Slide-in alerts for match starts and achievements"
                 value={notificationsEnabled}
                 onChange={() => { sounds.tick(); setNotificationsEnabled(!notificationsEnabled); }}
+              />
+              <div className="border-t border-theme/50" />
+              <ToggleRow
+                icon="⏳"
+                label="Auto-Start Matches"
+                sublabel="Starts a 15-second countdown when both sides have players"
+                value={autoStartMatches}
+                onChange={() => { sounds.tick(); setAutoStartMatches(!autoStartMatches); }}
               />
               <div className="border-t border-theme/50" />
               <ToggleRow
