@@ -88,7 +88,7 @@ function PlayerBubbleOnTable({
     <div
       className={`group relative flex flex-col items-center gap-0.5 ${
         side === 'A' ? 'animate-slide-in-left' : 'animate-slide-in-right'
-      }`}
+      } ${readOnly && side === 'A' ? 'rally-a' : ''} ${readOnly && side === 'B' ? 'rally-b' : ''}`}
       style={{ transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
     >
       <div className="relative">

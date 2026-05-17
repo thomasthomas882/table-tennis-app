@@ -224,6 +224,23 @@
 .animate-bubble-pop     { animation: bubble-pop     0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 .dragging               { animation: drag-lift 0.15s ease forwards; opacity: 0.7; }
 
+/* ─── Ping Pong Rally Animations ───────────────────────────── */
+
+@keyframes rally-hit-right {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(15px) scale(1.05); }
+  30%      { transform: translateX(0); }
+}
+
+@keyframes rally-hit-left {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-15px) scale(1.05); }
+  30%      { transform: translateX(0); }
+}
+
+.rally-a { animation: rally-hit-right 1.6s ease-out infinite; }
+.rally-b { animation: rally-hit-left 1.6s ease-out infinite; animation-delay: 0.8s; }
+
 /* ─── Touch optimizations ──────────────────────────────────── */
 
 /* Prevent 300ms tap delay on buttons */
