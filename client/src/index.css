@@ -242,15 +242,15 @@
 .rally-b { animation: rally-hit-left 1.6s ease-out infinite; animation-delay: 0.8s; }
 
 @keyframes spark-flash {
-  0%, 14% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
-  15%     { opacity: 1; transform: translate(-50%, -50%) scale(0.9) rotate(8deg); filter: brightness(1.5); }
-  25%     { opacity: 0.8; transform: translate(-50%, -50%) scale(0.7) rotate(-5deg); filter: brightness(1.2); }
-  35%     { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+  0%, 14% { opacity: 0; transform: translate(-50%, -50%) scale(0.1) rotate(0deg); }
+  15%     { opacity: 1; transform: translate(-50%, -50%) scale(0.6) rotate(8deg); filter: brightness(1.5); }
+  25%     { opacity: 0.8; transform: translate(-50%, -50%) scale(0.4) rotate(-5deg); filter: brightness(1.2); }
+  35%     { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
   
-  50%, 64% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
-  65%      { opacity: 1; transform: translate(-50%, -50%) scale(0.9) rotate(-8deg); filter: brightness(1.5); }
-  75%      { opacity: 0.8; transform: translate(-50%, -50%) scale(0.7) rotate(5deg); filter: brightness(1.2); }
-  85%      { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+  50%, 64% { opacity: 0; transform: translate(-50%, -50%) scale(0.1) rotate(0deg); }
+  65%      { opacity: 1; transform: translate(-50%, -50%) scale(0.6) rotate(-8deg); filter: brightness(1.5); }
+  75%      { opacity: 0.8; transform: translate(-50%, -50%) scale(0.4) rotate(5deg); filter: brightness(1.2); }
+  85%      { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
   
   100% { opacity: 0; transform: translate(-50%, -50%); }
 }
