@@ -241,6 +241,22 @@
 .rally-a { animation: rally-hit-right 1.6s ease-out infinite; }
 .rally-b { animation: rally-hit-left 1.6s ease-out infinite; animation-delay: 0.8s; }
 
+@keyframes spark-flash {
+  0%, 12% { opacity: 0; transform: scale(0.5); }
+  15%     { opacity: 1; transform: scale(1.8) rotate(10deg); filter: drop-shadow(0 0 15px #60a5fa) brightness(1.5); }
+  25%     { opacity: 0; transform: scale(0.8); }
+  
+  50%, 62% { opacity: 0; transform: scale(0.5); }
+  65%      { opacity: 1; transform: scale(1.8) rotate(-10deg); filter: drop-shadow(0 0 15px #60a5fa) brightness(1.5); }
+  75%      { opacity: 0; transform: scale(0.8); }
+  
+  100% { opacity: 0; }
+}
+
+.animate-spark {
+  animation: spark-flash 1.6s ease-out infinite;
+}
+
 /* ─── Touch optimizations ──────────────────────────────────── */
 
 /* Prevent 300ms tap delay on buttons */

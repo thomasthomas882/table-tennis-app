@@ -212,6 +212,13 @@ function TableCard({
           }}
         />
 
+        {/* Electric Spark Effect */}
+        {isOccupied && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 animate-spark text-blue-300 drop-shadow-md text-2xl">
+            ⚡
+          </div>
+        )}
+
         {/* Side A */}
         <div
           onDragOver={isOccupied ? undefined : e => onDragOver(e, 'A')}
