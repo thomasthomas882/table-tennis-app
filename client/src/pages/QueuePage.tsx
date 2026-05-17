@@ -222,7 +222,7 @@ function TableCard({
             dragOverSide === 'A' && !isOccupied ? 'bg-blue-400/25' : ''
           } ${selectedQueuePlayer && !isOccupied && sides.A.length < 2 ? 'cursor-pointer bg-green-400/10' : ''}`}
         >
-          <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.A.length === 2 ? 'flex-row' : 'flex-col'}`}>
+          <div className="flex flex-col items-center justify-center gap-1 transition-all duration-300">
             {sides.A.length === 0 && !isOccupied ? (
               <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'A' || (selectedQueuePlayer && sides.A.length < 2) ? 'opacity-100' : 'opacity-35'}`}>
                 <span className="text-2xl">👤</span>
@@ -260,7 +260,7 @@ function TableCard({
             dragOverSide === 'B' && !isOccupied ? 'bg-purple-400/25' : ''
           } ${selectedQueuePlayer && !isOccupied && sides.B.length < 2 ? 'cursor-pointer bg-green-400/10' : ''}`}
         >
-          <div className={`flex items-center justify-center gap-1 transition-all duration-300 ${sides.B.length === 2 ? 'flex-row' : 'flex-col'}`}>
+          <div className="flex flex-col items-center justify-center gap-1 transition-all duration-300">
             {sides.B.length === 0 && !isOccupied ? (
               <div className={`flex flex-col items-center gap-1 transition-opacity duration-200 ${dragOverSide === 'B' || (selectedQueuePlayer && sides.B.length < 2) ? 'opacity-100' : 'opacity-35'}`}>
                 <span className="text-2xl">👤</span>
