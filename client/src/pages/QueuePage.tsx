@@ -214,8 +214,24 @@ function TableCard({
 
         {/* Electric Spark Effect */}
         {isOccupied && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 animate-spark text-blue-300 drop-shadow-md text-2xl">
-            ⚡
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 animate-spark w-40 h-40 flex items-center justify-center">
+            {/* Energy burst circle */}
+            <div className="absolute inset-4 rounded-full bg-cyan-400/20 blur-md"></div>
+            {/* Anime Lightning SVG */}
+            <svg viewBox="0 0 100 100" className="w-full h-full anime-lightning" preserveAspectRatio="none">
+              <g className="animate-lightning-strobe" stroke="#fff" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <path className="lightning-path-1" d="M10,50 L25,30 L45,55 L70,25 L90,50" />
+                <path className="lightning-path-2" d="M15,60 L35,80 L55,40 L80,75 L95,50" />
+                <path className="lightning-path-3" d="M5,45 L25,60 L45,25 L75,65 L95,45" />
+                {/* Branches */}
+                <path className="lightning-path-1" d="M25,30 L40,10 L50,20" strokeWidth="1.5" />
+                <path className="lightning-path-2" d="M55,40 L65,15 L80,30" strokeWidth="1.5" />
+                <path className="lightning-path-3" d="M45,25 L50,5" strokeWidth="1.5" />
+                <path className="lightning-path-1" d="M45,55 L55,80 L65,70" strokeWidth="1.5" />
+                <path className="lightning-path-2" d="M35,80 L40,95" strokeWidth="1.5" />
+                <path className="lightning-path-3" d="M75,65 L85,90" strokeWidth="1.5" />
+              </g>
+            </svg>
           </div>
         )}
 
