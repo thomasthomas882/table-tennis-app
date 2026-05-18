@@ -17,11 +17,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const crypto = require('crypto');
 
 function broadcast(event, data) { io.emit(event, data); }
 function notify(message, type = 'info') {
-  broadcast('notification', { message, type, id: Date.now() });
+  broadcast('notification', { message, type, id: crypto.randomUUID() });
 }
 
 // ─── Players ─────────────────────────────────────────────────────────────────

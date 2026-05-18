@@ -7,7 +7,7 @@ function parseUTC(s: string) {
   return new Date(s.includes('T') ? s + (s.endsWith('Z') ? '' : 'Z') : s.replace(' ', 'T') + 'Z');
 }
 
-function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
+function MatchRow({ match, showElo }: { match: Match; showElo: boolean }) {
   const isDoubles = !!(match.player3_id || match.player4_id);
   const isDraw = match.winner_id === null;
   const teamA = [match.player1_name, match.player3_name].filter(Boolean).join(' & ');
@@ -28,7 +28,7 @@ function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
           {isDraw && <span className="badge bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Draw</span>}
           <div>
             <span className={`font-medium text-sm ${p1Won ? 'text-green-400' : 'text-secondary'}`}>{teamA}</span>
-            {!hideElo && <span className="text-xs text-muted ml-1">({match.player1_elo}{match.player3_elo ? `/${match.player3_elo}` : ''})</span>}
+            {showElo && <span className="text-xs text-muted ml-1">({match.player1_elo}{match.player3_elo ? `/${match.player3_elo}` : ''})</span>}
           </div>
         </div>
       </td>
@@ -42,7 +42,7 @@ function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
       <td className="px-4 py-3">
         <div>
           <span className={`font-medium text-sm ${p2Won ? 'text-green-400' : 'text-secondary'}`}>{teamB}</span>
-          {!hideElo && <span className="text-xs text-muted ml-1">({match.player2_elo}{match.player4_elo ? `/${match.player4_elo}` : ''})</span>}
+          {showElo && <span className="text-xs text-muted ml-1">({match.player2_elo}{match.player4_elo ? `/${match.player4_elo}` : ''})</span>}
         </div>
       </td>
       <td className="px-4 py-3 text-xs text-muted hidden sm:table-cell">
@@ -53,7 +53,7 @@ function MatchRow({ match, hideElo }: { match: Match; hideElo: boolean }) {
 }
 
 export default function MatchHistoryPage() {
-  const { hideElo, players } = useApp();
+  const { showElo, players } = useApp();
   const [data, setData] = useState<HistoryPage | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -121,7 +121,7 @@ export default function MatchHistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(m => <MatchRow key={m.id} match={m} hideElo={hideElo} />)}
+                {filtered.map(m => <MatchRow key={m.id} match={m} showElo={showElo} />)}
               </tbody>
             </table>
           </div>

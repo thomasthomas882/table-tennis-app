@@ -45,7 +45,7 @@ function LiveMatchPreview({ match }: { match: Match }) {
 }
 
 export default function Dashboard() {
-  const { stats, activeMatches, queue, players, hideElo } = useApp();
+  const { stats, activeMatches, queue, players, showElo } = useApp();
 
   const topPlayers = [...players]
     .filter(p => (p.wins + p.losses) > 0)
@@ -145,7 +145,7 @@ export default function Dashboard() {
                         {i + 1}
                       </span>
                       <span className="flex-1">{entry.name}</span>
-                      {!hideElo && <span className="text-muted text-xs">ELO {entry.elo}</span>}
+                      {showElo && <span className="text-muted text-xs">ELO {entry.elo}</span>}
                     </li>
                   ))}
                   {queue.length > 5 && (
@@ -171,7 +171,7 @@ export default function Dashboard() {
                     <li key={p.id} className="flex items-center gap-3 text-sm animate-slide-up">
                       <span className="text-lg w-6 text-center">{['🥇','🥈','🥉','4️⃣','5️⃣'][i]}</span>
                       <span className="flex-1 font-medium">{p.name}</span>
-                      {!hideElo && <span className="text-green-400 font-bold">{p.elo}</span>}
+                      {showElo && <span className="text-green-400 font-bold">{p.elo}</span>}
                     </li>
                   ))}
                 </ol>

@@ -25,7 +25,7 @@ function EloBar({ elo, max, delay }: { elo: number; max: number; delay: number }
 }
 
 export default function LeaderboardPage() {
-  const { hideElo } = useApp();
+  const { showElo } = useApp();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'singles' | 'doubles'>('singles');
@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
       <div>
         <h1 className="text-2xl font-bold">Leaderboard</h1>
         <p className="text-secondary text-sm mt-1">
-          {hideElo ? 'ELO scores are hidden — toggle in Settings.' : 'Ranked by ELO rating (TTR-style). Starting at 1000.'}
+          {!showElo ? 'ELO scores are hidden — toggle in Settings.' : 'Ranked by ELO rating (TTR-style). Starting at 1000.'}
         </p>
       </div>
 
@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
                     className={`card flex flex-col items-center justify-end pb-4 ${heights[i]} relative animate-pop-in ${glows[i]}`}>
                     <span className="text-2xl">{medals[rank - 1]}</span>
                     <p className="font-bold text-sm mt-1 text-center truncate w-full px-2">{p.name}</p>
-                    {!hideElo && <p className="text-green-400 font-bold">{p.elo}</p>}
+                    {showElo && <p className="text-green-400 font-bold">{p.elo}</p>}
                     <p className="text-xs text-muted">{wins(p)}W – {losses(p)}L</p>
                     {rank === 1 && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-3xl animate-bounce">👑</div>
@@ -118,7 +118,7 @@ export default function LeaderboardPage() {
                 <tr className="bg-input border-b border-theme text-secondary text-xs">
                   <th className="text-left px-4 py-3 w-10">#</th>
                   <th className="text-left px-4 py-3">Player</th>
-                  {!hideElo && <th className="text-right px-4 py-3">ELO</th>}
+                  {showElo && <th className="text-right px-4 py-3">ELO</th>}
                   <th className="text-right px-4 py-3">W</th>
                   <th className="text-right px-4 py-3">L</th>
                   <th className="text-right px-4 py-3">Win%</th>
@@ -140,11 +140,11 @@ export default function LeaderboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{p.name}</p>
-                          {!hideElo && <EloBar elo={p.elo} max={maxElo} delay={i * 50} />}
+                          {showElo && <EloBar elo={p.elo} max={maxElo} delay={i * 50} />}
                         </div>
                       </div>
                     </td>
-                    {!hideElo && <td className="px-4 py-3 text-right font-bold text-green-400 tabular-nums">{p.elo}</td>}
+                    {showElo && <td className="px-4 py-3 text-right font-bold text-green-400 tabular-nums">{p.elo}</td>}
                     <td className="px-4 py-3 text-right text-green-300 tabular-nums">{wins(p)}</td>
                     <td className="px-4 py-3 text-right text-red-400 tabular-nums">{losses(p)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">

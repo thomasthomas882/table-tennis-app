@@ -10,12 +10,13 @@ interface Props {
   options: Option[];
   value: string;
   onChange: (value: string) => void;
+  onEnter?: () => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
 }
 
-export function SearchableSelect({ options, value, onChange, placeholder = 'Search…', className, disabled }: Props) {
+export function SearchableSelect({ options, value, onChange, onEnter, placeholder = 'Search…', className, disabled }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -36,7 +37,15 @@ export function SearchableSelect({ options, value, onChange, placeholder = 'Sear
   }, [query]);
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (!open) { if (e.key !== 'Tab') setOpen(true); return; }
+    if (!open) { 
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onEnter?.();
+        return;
+      }
+      if (e.key !== 'Tab') setOpen(true); 
+      return; 
+    }
     if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted(i => Math.min(i + 1, filtered.length - 1)); }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setHighlighted(i => Math.max(i - 1, 0)); }
     if (e.key === 'Enter') {

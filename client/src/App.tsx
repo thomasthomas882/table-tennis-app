@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, createContext, useContext, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { socket } from './socket';
 import { Player, QueueEntry, Table, Match, Notification, Stats } from './types';
@@ -31,8 +31,8 @@ interface AppCtx {
   setTheme: (t: Theme) => void;
   soundEnabled: boolean;
   setSoundEnabled: (v: boolean) => void;
-  hideElo: boolean;
-  setHideElo: (v: boolean) => void;
+  showElo: boolean;
+  setShowElo: (v: boolean) => void;
   skipMatchConfirm: boolean;
   setSkipMatchConfirm: (v: boolean) => void;
   matchTimeLimitSingles: number;
@@ -43,6 +43,12 @@ interface AppCtx {
   setVoiceGender: (v: 'male' | 'female') => void;
   roomCode: string | null;
   generateRoomCode: () => void;
+  announcerVolume: number;
+  setAnnouncerVolume: (v: number) => void;
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (v: boolean) => void;
+  autoStartMatches: boolean;
+  setAutoStartMatches: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppCtx>({
@@ -50,12 +56,15 @@ const AppContext = createContext<AppCtx>({
   stats: null, connected: false, refreshStats: () => {},
   theme: 'dark', setTheme: () => {},
   soundEnabled: true, setSoundEnabled: () => {},
-  hideElo: false, setHideElo: () => {},
+  showElo: true, setShowElo: () => {},
   skipMatchConfirm: false, setSkipMatchConfirm: () => {},
   matchTimeLimitSingles: 15, setMatchTimeLimitSingles: () => {},
   matchTimeLimitDoubles: 20, setMatchTimeLimitDoubles: () => {},
   voiceGender: 'female', setVoiceGender: () => {},
   roomCode: null, generateRoomCode: () => {},
+  announcerVolume: 1, setAnnouncerVolume: () => {},
+  notificationsEnabled: true, setNotificationsEnabled: () => {},
+  autoStartMatches: false, setAutoStartMatches: () => {},
 });
 
 export function useApp() {
@@ -82,8 +91,8 @@ export default function App() {
   const [skipMatchConfirm, setSkipMatchConfirmState] = useState<boolean>(() => {
     return localStorage.getItem('pingtrack-skip-match-confirm') === 'true';
   });
-  const [hideElo, setHideEloState] = useState<boolean>(() => {
-    return localStorage.getItem('pingtrack-hide-elo') === 'true';
+  const [showElo, setShowEloState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-show-elo') !== 'false';
   });
   const [matchTimeLimitSinglesState, setMatchTimeLimitSinglesState] = useState<number>(() => {
     return parseInt(localStorage.getItem('pingtrack-match-time') || '15', 10);
@@ -94,6 +103,21 @@ export default function App() {
   const [voiceGenderState, setVoiceGenderState] = useState<'male' | 'female'>(() => {
     return (localStorage.getItem('pingtrack-voice-gender') as 'male' | 'female') || 'female';
   });
+  const [announcerVolumeState, setAnnouncerVolumeState] = useState<number>(() => {
+    const stored = localStorage.getItem('pingtrack-announcer-volume');
+    return stored ? parseFloat(stored) : 1;
+  });
+  const [notificationsEnabledState, setNotificationsEnabledState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-notifications') !== 'false';
+  });
+  const [autoStartMatchesState, setAutoStartMatchesState] = useState<boolean>(() => {
+    return localStorage.getItem('pingtrack-auto-start') === 'true';
+  });
+
+  const notificationsEnabledRef = useRef(notificationsEnabledState);
+  useEffect(() => {
+    notificationsEnabledRef.current = notificationsEnabledState;
+  }, [notificationsEnabledState]);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
@@ -106,9 +130,9 @@ export default function App() {
     localStorage.setItem('pingtrack-sound', String(v));
   };
 
-  const handleSetHideElo = (v: boolean) => {
-    setHideEloState(v);
-    localStorage.setItem('pingtrack-hide-elo', String(v));
+  const handleSetShowElo = (v: boolean) => {
+    setShowEloState(v);
+    localStorage.setItem('pingtrack-show-elo', String(v));
   };
 
   const handleSetSkipMatchConfirm = (v: boolean) => {
@@ -130,6 +154,39 @@ export default function App() {
     setVoiceGenderState(v);
     localStorage.setItem('pingtrack-voice-gender', v);
   };
+
+  const handleSetAnnouncerVolume = (v: number) => {
+    setAnnouncerVolumeState(v);
+    localStorage.setItem('pingtrack-announcer-volume', String(v));
+  };
+
+  const handleSetNotificationsEnabled = (v: boolean) => {
+    setNotificationsEnabledState(v);
+    localStorage.setItem('pingtrack-notifications', String(v));
+  };
+
+  const handleSetAutoStartMatches = (v: boolean) => {
+    setAutoStartMatchesState(v);
+    localStorage.setItem('pingtrack-auto-start', String(v));
+  };
+
+  // Sync state across tabs
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pingtrack-theme' && e.newValue) setThemeState(e.newValue as Theme);
+      if (e.key === 'pingtrack-sound' && e.newValue) setSoundEnabledState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-show-elo' && e.newValue) setShowEloState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-skip-match-confirm' && e.newValue) setSkipMatchConfirmState(e.newValue === 'true');
+      if (e.key === 'pingtrack-match-time' && e.newValue) setMatchTimeLimitSinglesState(parseInt(e.newValue, 10));
+      if (e.key === 'pingtrack-match-time-doubles' && e.newValue) setMatchTimeLimitDoublesState(parseInt(e.newValue, 10));
+      if (e.key === 'pingtrack-voice-gender' && e.newValue) setVoiceGenderState(e.newValue as 'male' | 'female');
+      if (e.key === 'pingtrack-announcer-volume' && e.newValue) setAnnouncerVolumeState(parseFloat(e.newValue));
+      if (e.key === 'pingtrack-notifications' && e.newValue) setNotificationsEnabledState(e.newValue !== 'false');
+      if (e.key === 'pingtrack-auto-start' && e.newValue) setAutoStartMatchesState(e.newValue === 'true');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   // Sync sound module with persisted preference on mount
   useEffect(() => { setSoundEnabled(soundEnabledState); }, []);
@@ -159,32 +216,41 @@ export default function App() {
         
         if (currentElapsed >= limitSeconds) {
           const lockKey = `alerted-${match.created_at}-${limitSeconds}`;
+          // Initial check
           if (!localStorage.getItem(lockKey)) {
             localStorage.setItem(lockKey, 'true');
-            sounds.notification('match');
-            if ('speechSynthesis' in window) {
-              const msg = new SpeechSynthesisUtterance(`${match.table_name || 'Table'}, time is up.`);
-              const voices = window.speechSynthesis.getVoices();
-              let voice = voices.find(v => 
-                v.lang.startsWith('en') && 
-                (voiceGenderState === 'female' ? /female|zira|samantha/i.test(v.name) : /male|david|mark/i.test(v.name))
-              );
-              if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
-              if (voice) msg.voice = voice;
-              window.speechSynthesis.speak(msg);
-            }
+            
+            // Cross-tab deduplication using a random jitter
+            setTimeout(() => {
+              if (localStorage.getItem(`${lockKey}-spoken`)) return;
+              localStorage.setItem(`${lockKey}-spoken`, 'true');
+
+              sounds.notification('match');
+              if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(`${match.table_name || 'Table'}, time is up.`);
+                const voices = window.speechSynthesis.getVoices();
+                let voice = voices.find(v => 
+                  v.lang.startsWith('en') && 
+                  (voiceGenderState === 'female' 
+                    ? /female|woman|zira|samantha|hazel|catherine|susan|victoria|karen|moira|tessa|fiona|google us english/i.test(v.name) 
+                    : /male|man|david|mark|george|alex|daniel|fred|oliver|arthur/i.test(v.name))
+                );
+                if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
+                if (voice) msg.voice = voice;
+                msg.volume = announcerVolumeState;
+                window.speechSynthesis.speak(msg);
+              }
+            }, Math.random() * 200 + 50); // Jitter between 50ms and 250ms
           }
         }
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeMatches, matchTimeLimitSinglesState, matchTimeLimitDoublesState, voiceGenderState]);
+  }, [activeMatches, matchTimeLimitSinglesState, matchTimeLimitDoublesState, voiceGenderState, announcerVolumeState]);
 
   const pushNotification = (n: Notification) => {
+    if (!notificationsEnabledRef.current) return;
     setNotifications((prev) => [n, ...prev].slice(0, 5));
-    setTimeout(() => {
-      setNotifications((prev) => prev.filter((x) => x.id !== n.id));
-    }, 5000);
   };
 
   useEffect(() => {
@@ -244,12 +310,15 @@ export default function App() {
       players, queue, tables, activeMatches, stats, connected, refreshStats,
       theme, setTheme,
       soundEnabled: soundEnabledState, setSoundEnabled: handleSetSoundEnabled,
-      hideElo, setHideElo: handleSetHideElo,
+      showElo, setShowElo: handleSetShowElo,
       skipMatchConfirm, setSkipMatchConfirm: handleSetSkipMatchConfirm,
       matchTimeLimitSingles: matchTimeLimitSinglesState, setMatchTimeLimitSingles: handleSetMatchTimeLimitSingles,
       matchTimeLimitDoubles: matchTimeLimitDoublesState, setMatchTimeLimitDoubles: handleSetMatchTimeLimitDoubles,
       voiceGender: voiceGenderState, setVoiceGender: handleSetVoiceGender,
-      roomCode, generateRoomCode
+      roomCode, generateRoomCode,
+      announcerVolume: announcerVolumeState, setAnnouncerVolume: handleSetAnnouncerVolume,
+      notificationsEnabled: notificationsEnabledState, setNotificationsEnabled: handleSetNotificationsEnabled,
+      autoStartMatches: autoStartMatchesState, setAutoStartMatches: handleSetAutoStartMatches,
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
