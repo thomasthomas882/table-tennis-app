@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { sounds } from '../utils/sounds';
 import { useApp } from '../App';
 import { api } from '../api';
@@ -829,14 +830,21 @@ export default function MatchesPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold text-lg mb-4">Recent Matches</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-lg">Recent Matches</h2>
+          {completed.length > 12 && (
+            <Link to="/history" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
+              View All History →
+            </Link>
+          )}
+        </div>
         {loadingHistory ? (
           <div className="text-muted text-sm">Loading…</div>
         ) : completed.length === 0 ? (
           <div className="card text-center py-8 text-muted">No completed matches yet</div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {completed.map(m => <CompletedMatchCard key={m.id} match={m} />)}
+            {completed.slice(0, 12).map(m => <CompletedMatchCard key={m.id} match={m} />)}
           </div>
         )}
       </section>
