@@ -9,7 +9,7 @@ const APP_GUIDE_STEPS = [
   { icon: '👤', title: 'Add Players', desc: 'Go to the Players tab and add every club member by name. Each player starts at 1000 ELO.' },
   { icon: '🏓', title: 'Set Up Tables', desc: 'In Settings → Tables, add the tables at your venue (e.g. "Table 1", "Main Table").' },
   { icon: '⏳', title: 'Build the Queue', desc: 'Go to the Queue tab. Search for players and click + to add them to the waiting list. Drag rows to reorder. Each entry shows how long the player has been waiting.' },
-  { icon: '▶', title: 'Start a Match', desc: 'Drag players from the queue onto a table card — left side and right side. Hit "Start Match". Supports singles (1v1) and doubles (2v2).' },
+  { icon: '▶', title: 'Start a Match', desc: 'Drag players from the queue onto a table card — left side and right side. Hit "Start Match" (or let the 15s auto-start countdown trigger it if enabled in Settings). Supports singles (1v1) and doubles (2v2).' },
   { icon: '✓', title: 'Complete a Match', desc: 'In the Matches tab, click "Complete" on an active match. Enter the score and pick the winner — ELO updates automatically. You can also record a Draw (no ELO change) or Void the match to cancel it — either way players are returned to the queue.' },
   { icon: '🔗', title: 'Best-of Series', desc: 'In the Matches tab, click "Start Series" to run a Best of 3, 5, or 7 between two players on a chosen table. Games auto-advance and ELO updates after each game. Cancel a series at any time to return players to the queue.' },
   { icon: '🏆', title: 'Check the Leaderboard', desc: 'The Leaderboard tab ranks all players by ELO in real time. Wins, losses, win rate, and current win streaks are all tracked. Switch between Singles and Doubles rankings.' },

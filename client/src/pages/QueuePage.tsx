@@ -387,7 +387,7 @@ export default function QueuePage() {
   const [starting, setStarting] = useState<number | null>(null);
   
   // ── Auto-Start Countdown State ─────────────────────────────────
-  const [autoStartDeadlines, setAutoStartDeadlines] = useState<{ [tableId: number]: number }>({});
+  const [autoStartDeadlines, setAutoStartDeadlines] = useState<{ [tableId: number]: { deadline: number, playerHash: string } }>({});
   const [, setTimerTick] = useState(0);
 
   // Auto-Start Timer Loop
@@ -396,8 +396,8 @@ export default function QueuePage() {
     const interval = setInterval(() => {
       setTimerTick(t => t + 1);
       const now = Date.now();
-      for (const [tId, deadline] of Object.entries(autoStartDeadlines)) {
-        if (now >= deadline && starting !== Number(tId)) {
+      for (const [tId, entry] of Object.entries(autoStartDeadlines)) {
+        if (now >= entry.deadline && starting !== Number(tId)) {
           startMatch(Number(tId));
         }
       }
@@ -411,26 +411,31 @@ export default function QueuePage() {
       setAutoStartDeadlines({});
       return;
     }
+
     setAutoStartDeadlines(prev => {
       const next = { ...prev };
       let changed = false;
       for (const tId in assignments) {
         const sides = assignments[tId];
         const canStart = sides.A.length > 0 && sides.B.length > 0;
+        const currentHash = [...sides.A].sort().join(',') + '|' + [...sides.B].sort().join(',');
         
         // If it can start, set/reset the deadline
         if (canStart) {
-          next[tId] = Date.now() + 15000;
-          changed = true;
-        } else if (next[tId]) {
-          delete next[tId];
+          const existing = prev[Number(tId)];
+          if (!existing || existing.playerHash !== currentHash) {
+            next[Number(tId)] = { deadline: Date.now() + 15000, playerHash: currentHash };
+            changed = true;
+          }
+        } else if (next[Number(tId)]) {
+          delete next[Number(tId)];
           changed = true;
         }
       }
       // Also clean up any deadlines for tables that no longer have assignments
       for (const tId in next) {
-        if (!assignments[tId]) {
-          delete next[tId];
+        if (!assignments[Number(tId)]) {
+          delete next[Number(tId)];
           changed = true;
         }
       }
@@ -893,7 +898,7 @@ export default function QueuePage() {
                     key={table.id}
                     table={table}
                     sides={sides}
-                    autoStartDeadline={autoStartDeadlines[table.id]}
+                    autoStartDeadline={autoStartDeadlines[table.id]?.deadline}
                     dragOverSide={dragOverSide}
                     isDragOver={isDragOver}
                     isDragging={isDragging}
