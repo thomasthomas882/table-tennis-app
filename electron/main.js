@@ -4,7 +4,7 @@ const path = require('path');
 const net = require('net');
 const fs = require('fs');
 
-const PORT = 3001;
+const PORT = 3002;
 let serverProcess = null;
 let mainWindow = null;
 let logFile = null;
