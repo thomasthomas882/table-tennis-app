@@ -135,6 +135,8 @@ interface TableCardProps {
   onTapSide: (tableId: number, side: 'A' | 'B') => void;
   matchStartedAt?: string;
   isDoubles?: boolean;
+  matchId?: number;
+  skipMatchConfirm?: boolean;
 }
 
 function TableCard({
@@ -146,10 +148,34 @@ function TableCard({
   selectedQueuePlayer, onTapSide,
   matchStartedAt, isDoubles,
   autoStartDeadline,
+  matchId,
+  skipMatchConfirm,
 }: TableCardProps & { autoStartDeadline?: number }) {
   const canStart = sides.A.length > 0 && sides.B.length > 0;
   const isOccupied = table.status === 'occupied';
   const hasAssignments = sides.A.length + sides.B.length > 0;
+  const [drawing, setDrawing] = useState(false);
+
+  async function handleDrawClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!matchId) return;
+
+    if (!skipMatchConfirm) {
+      const confirm = window.confirm(`Are you sure you want to declare the match on ${table.name} as a draw?`);
+      if (!confirm) return;
+    }
+
+    setDrawing(true);
+    try {
+      await api.drawMatch(matchId);
+      sounds.success();
+    } catch (err) {
+      console.error("Failed to draw match", err);
+      alert("Failed to record draw");
+    } finally {
+      setDrawing(false);
+    }
+  }
 
   return (
     <div
@@ -174,6 +200,18 @@ function TableCard({
           <span className="font-semibold text-sm">{table.name}</span>
           {isOccupied && <span className="badge bg-orange-500/20 text-orange-400 text-[10px]">In Use</span>}
         </div>
+
+        {isOccupied && matchId && (
+          <button
+            onClick={handleDrawClick}
+            disabled={drawing}
+            className="bg-yellow-600/15 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-400 font-medium px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1 z-30 pointer-events-auto"
+            title="Declare match as draw"
+          >
+            Draw 🤝
+          </button>
+        )}
+
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${isOccupied ? 'bg-orange-400 animate-pulse' : 'bg-green-400'}`} />
           <span className="text-xs text-muted capitalize">{table.status}</span>
@@ -346,7 +384,7 @@ function TableCard({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function QueuePage() {
-  const { players, queue, tables, activeMatches, showElo, autoStartMatches } = useApp();
+  const { players, queue, tables, activeMatches, showElo, autoStartMatches, skipMatchConfirm } = useApp();
 
   // ── Touch device detection ─────────────────────────────────────
   const isTouchDevice = useRef(
@@ -917,6 +955,8 @@ export default function QueuePage() {
                     onTapSide={handleTapSide}
                     matchStartedAt={activeMatch?.created_at}
                     isDoubles={!!activeMatch?.player3_id}
+                    matchId={activeMatch?.id}
+                    skipMatchConfirm={skipMatchConfirm}
                   />
                 );
               })}
