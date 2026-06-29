@@ -161,7 +161,7 @@ function TableCard({
     if (!matchId) return;
 
     if (!skipMatchConfirm) {
-      const confirm = window.confirm(`Are you sure you want to declare the match on ${table.name} as a draw?`);
+      const confirm = window.confirm(`Are you sure you want to finish the match on ${table.name}?`);
       if (!confirm) return;
     }
 
@@ -170,8 +170,8 @@ function TableCard({
       await api.drawMatch(matchId);
       sounds.success();
     } catch (err) {
-      console.error("Failed to draw match", err);
-      alert("Failed to record draw");
+      console.error("Failed to finish match", err);
+      alert("Failed to record finish");
     } finally {
       setDrawing(false);
     }
@@ -205,10 +205,10 @@ function TableCard({
           <button
             onClick={handleDrawClick}
             disabled={drawing}
-            className="bg-yellow-600/15 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-400 font-medium px-3 py-1 rounded-lg text-xs transition-all flex items-center gap-1 z-30 pointer-events-auto"
-            title="Declare match as draw"
+            className="bg-green-600/15 hover:bg-green-600/30 border border-green-500/30 text-green-400 font-medium px-6 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1 z-30 pointer-events-auto"
+            title="Finish match (records as draw with no ELO change)"
           >
-            Draw 🤝
+            Finish ✓
           </button>
         )}
 
