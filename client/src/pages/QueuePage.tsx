@@ -181,7 +181,7 @@ function TableCard({
     <div
       onDragOver={onCardDragOver}
       onDrop={onCardDrop}
-      className={`card !p-4 space-y-3 transition-all duration-200 ${
+      className={`card !p-5 space-y-4 transition-all duration-200 ${
         isDragging ? 'opacity-40 scale-95' : ''
       } ${isDragOver ? 'border-blue-400/60 bg-blue-400/5 scale-[1.01]' : ''} ${
         canStart && !isOccupied ? 'border-green-500/40 shadow-[0_0_20px_rgba(74,222,128,0.08)]' : ''
@@ -220,7 +220,7 @@ function TableCard({
 
       {/* Table surface */}
       <div
-        className={`relative rounded-xl overflow-hidden h-48 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
+        className={`relative rounded-xl overflow-hidden h-56 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
         style={{ background: 'linear-gradient(160deg, #064e3b 0%, #065f46 50%, #047857 100%)' }}
       >
         {/* Boundary lines */}
@@ -812,10 +812,31 @@ export default function QueuePage() {
               <span className="badge bg-card border border-theme text-secondary">{queue.length} players</span>
             </div>
 
+            {/* Add to queue */}
+            <div className="border-b border-theme pb-4">
+              <p className="text-xs font-medium text-secondary mb-2 uppercase tracking-wider">Add player to queue</p>
+              <div className="flex gap-2">
+                <SearchableSelect
+                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: !showElo ? undefined : `ELO ${p.elo}` }))}
+                  value={selectedPlayer}
+                  onChange={setSelectedPlayer}
+                  onEnter={() => { if (selectedPlayer && !addLoading) joinQueue(); }}
+                  placeholder="Search player…"
+                  className="flex-1"
+                />
+                <button onClick={joinQueue} disabled={!selectedPlayer || addLoading} className="btn-primary whitespace-nowrap">
+                  {addLoading ? '…' : '+ Join'}
+                </button>
+              </div>
+              {availableForQueue.length === 0 && players.length > 0 && (
+                <p className="text-xs text-muted mt-1.5">All players are queued or playing</p>
+              )}
+            </div>
+
             {queue.length === 0 ? (
               <div className="text-center py-8 text-muted">
                 <p className="text-4xl mb-3">⏳</p>
-                <p className="text-sm">Queue is empty — add players below</p>
+                <p className="text-sm">Queue is empty — add players above</p>
               </div>
             ) : (
               <ol ref={queueListRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -842,32 +863,36 @@ export default function QueuePage() {
                       onDrop={e => handleQueueItemDrop(e, entry.player_id)}
                       {...getTouchHandlers(i)}
                       onClick={() => handleTapQueueItem(entry.player_id, entry.name)}
-                      className={`flex items-center gap-1.5 p-1.5 min-h-[48px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+                      className={`group flex items-center gap-2 p-2.5 min-h-[64px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
                       } ${isSelected ? 'border-green-400 ring-2 ring-green-400/50 bg-green-500/10' : isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
                         isStaged ? 'opacity-70' : ''
                       }`}
                     >
-                      <span className="text-muted text-xs leading-none select-none cursor-grab">⠿</span>
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 bg-card border border-theme text-secondary">
+                      <span className="text-muted text-sm leading-none select-none cursor-grab">⠿</span>
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 bg-card border border-theme text-secondary">
                         {i + 1}
                       </span>
-                      <Avatar name={entry.name} size="xs" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <p className="font-semibold text-xs truncate leading-tight">{entry.name}</p>
-                          {showElo && <span className="text-[10px] text-muted leading-tight">({entry.elo})</span>}
-                        </div>
-                        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted leading-none mt-0.5">
+                        <p className="font-semibold text-sm truncate text-primary leading-tight">{entry.name}</p>
+                        {showElo && (
+                          <p className="text-xs text-green-400 font-medium leading-tight mt-0.5">
+                            {entry.elo} ELO
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1 text-xs text-muted leading-tight mt-0.5">
                           <span>⏳ {formatWaitTime(entry.joined_at)}</span>
                           {stagedOnTable && (
-                            <span className="text-blue-400">📍 {stagedOnTable.name}</span>
+                            <>
+                              <span className="opacity-45">•</span>
+                              <span className="text-blue-400 font-medium truncate">{stagedOnTable.name}</span>
+                            </>
                           )}
                         </div>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); leaveQueue(entry.player_id); }}
-                        className="text-faint hover:text-red-400 transition-colors text-xl leading-none w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 flex-shrink-0"
+                        className="text-faint hover:text-red-400 transition-all text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 flex-shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-150"
                         title="Remove from queue"
                       >×</button>
                     </li>
@@ -882,27 +907,6 @@ export default function QueuePage() {
                 "{selectedQueuePlayer.name}" selected — tap a table side to assign
               </p>
             )}
-
-            {/* Add to queue */}
-            <div className="border-t border-theme pt-4">
-              <p className="text-xs font-medium text-secondary mb-2 uppercase tracking-wider">Add player to queue</p>
-              <div className="flex gap-2">
-                <SearchableSelect
-                  options={availableForQueue.map(p => ({ value: String(p.id), label: p.name, sublabel: !showElo ? undefined : `ELO ${p.elo}` }))}
-                  value={selectedPlayer}
-                  onChange={setSelectedPlayer}
-                  onEnter={() => { if (selectedPlayer && !addLoading) joinQueue(); }}
-                  placeholder="Search player…"
-                  className="flex-1"
-                />
-                <button onClick={joinQueue} disabled={!selectedPlayer || addLoading} className="btn-primary whitespace-nowrap">
-                  {addLoading ? '…' : '+ Join'}
-                </button>
-              </div>
-              {availableForQueue.length === 0 && players.length > 0 && (
-                <p className="text-xs text-muted mt-1.5">All players are queued or playing</p>
-              )}
-            </div>
           </div>
         </div>
 

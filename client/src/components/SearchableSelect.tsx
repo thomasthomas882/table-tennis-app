@@ -61,14 +61,19 @@ export function SearchableSelect({ options, value, onChange, onEnter, placeholde
     setOpen(false);
   }
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   function handleFocus() {
     setQuery('');
     setOpen(true);
-  }
-
-  function handleBlur() {
-    // small delay so click on option registers before blur hides list
-    setTimeout(() => setOpen(false), 150);
   }
 
   const displayValue = open ? query : (selected?.label ?? '');
@@ -82,7 +87,6 @@ export function SearchableSelect({ options, value, onChange, onEnter, placeholde
           value={displayValue}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={handleFocus}
-          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}

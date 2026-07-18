@@ -172,8 +172,8 @@ export default function PlayersPage() {
           <p className="text-muted text-sm mt-1">Try a different name.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger">
-          {displayPlayers.map((p, i) => {
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {displayPlayers.map((p) => {
             const status = getStatus(p.id);
             const totalGames = p.wins + p.losses;
             const winRate = totalGames > 0 ? Math.round((p.wins / totalGames) * 100) : null;
@@ -182,8 +182,7 @@ export default function PlayersPage() {
 
             return (
               <div key={p.id}
-                className="card relative group cursor-pointer animate-pop-in hover:border-hover transition-all hover:-translate-y-0.5"
-                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                className="card relative group cursor-pointer hover:border-hover transition-all hover:-translate-y-0.5"
                 onClick={() => { sounds.click(); navigate(`/players/${p.id}`); }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); removePlayer(p.id, p.name); }}

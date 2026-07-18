@@ -234,6 +234,7 @@ export default function App() {
                 if (!voice) voice = voices.find(v => v.lang.startsWith('en'));
                 if (voice) msg.voice = voice;
                 msg.volume = announcerVolumeState;
+                window.speechSynthesis.cancel();
                 window.speechSynthesis.speak(msg);
               }
             }, Math.random() * 200 + 50); // Jitter between 50ms and 250ms
@@ -308,7 +309,7 @@ export default function App() {
     }}>
       <div className="min-h-screen bg-page text-primary transition-colors duration-300">
         <Navbar connected={connected} />
-        <main className="max-w-7xl mx-auto px-4 py-6">
+        <main className="max-w-8xl mx-auto px-4 py-6">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/queue" element={<QueuePage />} />
