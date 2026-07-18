@@ -61,8 +61,8 @@ type Assignments = { [tableId: number]: TableSides }
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  const sz = size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base';
+function Avatar({ name, size = 'md' }: { name: string; size?: 'xs' | 'sm' | 'md' }) {
+  const sz = size === 'xs' ? 'w-6 h-6 text-[10px]' : size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base';
   return (
     <div className={`${sz} rounded-full bg-gradient-to-br from-green-500/30 to-green-700/20 border border-green-500/30 flex items-center justify-center text-green-400 font-bold flex-shrink-0`}>
       {name[0].toUpperCase()}
@@ -818,7 +818,7 @@ export default function QueuePage() {
                 <p className="text-sm">Queue is empty — add players below</p>
               </div>
             ) : (
-              <ol ref={queueListRef} className="grid grid-cols-2 gap-2">
+              <ol ref={queueListRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 gap-2">
                 {queue.map((entry, i) => {
                   const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
@@ -842,21 +842,23 @@ export default function QueuePage() {
                       onDrop={e => handleQueueItemDrop(e, entry.player_id)}
                       {...getTouchHandlers(i)}
                       onClick={() => handleTapQueueItem(entry.player_id, entry.name)}
-                      className={`flex items-center gap-2 p-2.5 min-h-[64px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
+                      className={`flex items-center gap-1.5 p-1.5 min-h-[48px] rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none ${
                         isDragging ? 'opacity-40 scale-95' : ''
                       } ${isSelected ? 'border-green-400 ring-2 ring-green-400/50 bg-green-500/10' : isDragOver ? 'border-green-500/60 bg-green-500/8 translate-y-0.5' : 'border-theme bg-input/40 hover:border-hover'} ${
                         isStaged ? 'opacity-70' : ''
                       }`}
                     >
-                      <span className="text-muted text-base leading-none select-none cursor-grab">⠿</span>
-                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 bg-card border border-theme text-secondary">
+                      <span className="text-muted text-xs leading-none select-none cursor-grab">⠿</span>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0 bg-card border border-theme text-secondary">
                         {i + 1}
                       </span>
-                      <Avatar name={entry.name} size="sm" />
+                      <Avatar name={entry.name} size="xs" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{entry.name}</p>
-                        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted">
-                          {showElo && <span>ELO {entry.elo}</span>}
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <p className="font-semibold text-xs truncate leading-tight">{entry.name}</p>
+                          {showElo && <span className="text-[10px] text-muted leading-tight">({entry.elo})</span>}
+                        </div>
+                        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted leading-none mt-0.5">
                           <span>⏳ {formatWaitTime(entry.joined_at)}</span>
                           {stagedOnTable && (
                             <span className="text-blue-400">📍 {stagedOnTable.name}</span>
@@ -865,7 +867,7 @@ export default function QueuePage() {
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); leaveQueue(entry.player_id); }}
-                        className="text-faint hover:text-red-400 transition-colors text-3xl leading-none w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-500/10 flex-shrink-0"
+                        className="text-faint hover:text-red-400 transition-colors text-xl leading-none w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/10 flex-shrink-0"
                         title="Remove from queue"
                       >×</button>
                     </li>
