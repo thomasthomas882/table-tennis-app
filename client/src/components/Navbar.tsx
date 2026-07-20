@@ -6,8 +6,8 @@ import { sounds } from '../utils/sounds';
 const links = [
   { to: '/', label: 'Dashboard', icon: '⊞' },
   { to: '/queue', label: 'Queue', icon: '⏳' },
-  { to: '/matches', label: 'Matches', icon: '🏓' },
   { to: '/players', label: 'Players', icon: '👤' },
+  { to: '/matches', label: 'Matches', icon: '🏓' },
   { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/history', label: 'History', icon: '📋' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
