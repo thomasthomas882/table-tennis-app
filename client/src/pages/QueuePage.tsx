@@ -220,7 +220,7 @@ function TableCard({
 
       {/* Table surface */}
       <div
-        className={`relative rounded-xl overflow-hidden h-56 transition-all duration-200 ${isOccupied ? 'opacity-50' : ''}`}
+        className="relative rounded-xl overflow-hidden h-56 transition-all duration-200"
         style={{ background: 'linear-gradient(160deg, #064e3b 0%, #065f46 50%, #047857 100%)' }}
       >
         {/* Boundary lines */}
@@ -350,7 +350,7 @@ function TableCard({
         </div>
 
         {isOccupied && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 pointer-events-none">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-transparent pointer-events-none">
             {matchStartedAt && <Stopwatch startedAt={matchStartedAt} tableName={table.name} isDoubles={!!isDoubles} />}
           </div>
         )}
