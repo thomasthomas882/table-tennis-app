@@ -542,6 +542,7 @@ export default function QueuePage() {
     ...activeMatches.flatMap(m => [m.player3_id, m.player4_id].filter(Boolean) as number[]),
   ]);
   const stagedIds = new Set(Object.values(assignments).flatMap(s => [...s.A, ...s.B]));
+  const visibleQueue = queue.filter(entry => !stagedIds.has(entry.player_id));
 
   // Players who can be added to queue (not queued, not active)
   const availableForQueue = players.filter(p => !queuedIds.has(p.id) && !activeIds.has(p.id));
@@ -551,9 +552,18 @@ export default function QueuePage() {
     containerRef: queueListRef as React.RefObject<HTMLElement | null>,
     onReorder: (fromIdx, toIdx) => {
       sounds.tick();
+      const visible = queue.filter(entry => !stagedIds.has(entry.player_id));
+      const movedPlayer = visible[fromIdx];
+      const targetPlayer = visible[toIdx];
+      if (!movedPlayer || !targetPlayer) return;
+
       const newOrder = [...queue];
-      const [moved] = newOrder.splice(fromIdx, 1);
-      newOrder.splice(toIdx, 0, moved);
+      const origFromIdx = newOrder.findIndex(q => q.player_id === movedPlayer.player_id);
+      const origToIdx = newOrder.findIndex(q => q.player_id === targetPlayer.player_id);
+
+      if (origFromIdx === -1 || origToIdx === -1) return;
+      const [moved] = newOrder.splice(origFromIdx, 1);
+      newOrder.splice(origToIdx, 0, moved);
       api.reorderQueue(newOrder.map(q => q.player_id)).catch(() => {});
     },
   });
@@ -809,7 +819,7 @@ export default function QueuePage() {
           <div className="card space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-lg">Lobby</h2>
-              <span className="badge bg-card border border-theme text-secondary">{queue.length} players</span>
+              <span className="badge bg-card border border-theme text-secondary">{visibleQueue.length} players</span>
             </div>
 
             {/* Add to queue */}
@@ -833,14 +843,14 @@ export default function QueuePage() {
               )}
             </div>
 
-            {queue.length === 0 ? (
+            {visibleQueue.length === 0 ? (
               <div className="text-center py-8 text-muted">
                 <p className="text-4xl mb-3">⏳</p>
                 <p className="text-sm">Queue is empty — add players above</p>
               </div>
             ) : (
               <ol ref={queueListRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 gap-2">
-                {queue.map((entry, i) => {
+                {visibleQueue.map((entry, i) => {
                   const isDragging = draggedPlayerId === entry.player_id;
                   const isDragOver = dragOverQueueId === entry.player_id;
                   const isStaged = stagedIds.has(entry.player_id);
